@@ -1,26 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
+import '../bloc/event_bloc.dart';
 
-class OrganizerEventsPage extends StatefulWidget {
+class OrganizerEventsPage extends StatelessWidget {
   const OrganizerEventsPage({super.key});
 
   @override
-  State<OrganizerEventsPage> createState() => _OrganizerEventsPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => EventBloc(
+        synchronizeEventAttendees: context.read(), // Assuming you have DI setup
+      )..add(FetchEvents()),
+      child: const OrganizerEventsView(),
+    );
+  }
 }
 
-class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
+class OrganizerEventsView extends StatefulWidget {
+  const OrganizerEventsView({super.key});
+
+  @override
+  State<OrganizerEventsView> createState() => _OrganizerEventsViewState();
+}
+
+class _OrganizerEventsViewState extends State<OrganizerEventsView> {
   Map<String, dynamic>? userData;
-  List<Map<String, dynamic>> events = [];
-  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _loadEvents();
   }
 
   Future<void> _loadUserData() async {
@@ -28,47 +41,6 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
     if (mounted) {
       setState(() {
         userData = data;
-      });
-    }
-  }
-
-  Future<void> _loadEvents() async {
-    // TODO: Implementar llamada real al backend para obtener eventos
-    // Simulando carga de eventos
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      setState(() {
-        events = [
-          {
-            'id': '1',
-            'name': 'Concierto de Rock 2025',
-            'date': '2025-11-15',
-            'location': 'Estadio Nacional',
-            'tickets_sold': 1250,
-            'total_tickets': 2000,
-            'status': 'active',
-          },
-          {
-            'id': '2',
-            'name': 'Festival de Jazz',
-            'date': '2025-12-01',
-            'location': 'Centro Cultural',
-            'tickets_sold': 850,
-            'total_tickets': 1500,
-            'status': 'active',
-          },
-          {
-            'id': '3',
-            'name': 'Obra de Teatro',
-            'date': '2025-10-30',
-            'location': 'Teatro Municipal',
-            'tickets_sold': 180,
-            'total_tickets': 200,
-            'status': 'sold_out',
-          },
-        ];
-        isLoading = false;
       });
     }
   }
@@ -93,10 +65,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              setState(() {
-                isLoading = true;
-              });
-              _loadEvents();
+              context.read<EventBloc>().add(FetchEvents());
             },
           ),
           PopupMenuButton<String>(
@@ -120,11 +89,30 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (userData != null) _buildUserInfo(),
-          Expanded(child: isLoading ? _buildLoading() : _buildEventsList()),
-        ],
+      body: BlocListener<EventBloc, EventState>(
+        listener: (context, state) {
+          if (state is SyncSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Evento sincronizado con éxito'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          } else if (state is SyncFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error al sincronizar: ${state.message}'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+        child: Column(
+          children: [
+            if (userData != null) _buildUserInfo(),
+            Expanded(child: _buildEventsList()),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -193,69 +181,36 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
   }
 
   Widget _buildEventsList() {
-    if (events.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.event_busy,
-              size: 64,
-              color: AppColors.textSecondary,
+    return BlocBuilder<EventBloc, EventState>(
+      builder: (context, state) {
+        if (state is EventLoading || state is EventInitial) {
+          return _buildLoading();
+        } else if (state is EventLoaded) {
+          if (state.events.isEmpty) {
+            return const Center(child: Text('No tienes eventos.'));
+          }
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<EventBloc>().add(FetchEvents());
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(AppConstants.padding),
+              itemCount: state.events.length,
+              itemBuilder: (context, index) {
+                final event = state.events[index];
+                return _buildEventCard(event, state);
+              },
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'No tienes eventos creados',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Crea tu primer evento tocando el botón +',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadEvents,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppConstants.padding),
-        itemCount: events.length,
-        itemBuilder: (context, index) {
-          final event = events[index];
-          return _buildEventCard(event);
-        },
-      ),
+          );
+        } else if (state is EventError) {
+          return Center(child: Text('Error: ${state.message}'));
+        }
+        return const Center(child: Text('Estado no manejado.'));
+      },
     );
   }
 
-  Widget _buildEventCard(Map<String, dynamic> event) {
-    final soldPercentage =
-        (event['tickets_sold'] / event['total_tickets']) * 100;
-
-    Color statusColor;
-    String statusText;
-
-    switch (event['status']) {
-      case 'sold_out':
-        statusColor = AppColors.error;
-        statusText = 'Agotado';
-        break;
-      case 'active':
-        statusColor = AppColors.success;
-        statusText = 'Activo';
-        break;
-      default:
-        statusColor = AppColors.textSecondary;
-        statusText = 'Inactivo';
-    }
-
+  Widget _buildEventCard(Event event, EventState currentState) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.margin),
       elevation: 2,
@@ -268,7 +223,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
           // TODO: Navegar a detalles del evento
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ver detalles de: ${event['name']}'),
+              content: Text('Ver detalles de: ${event.name}'),
               backgroundColor: AppColors.info,
             ),
           );
@@ -282,7 +237,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      event['name'],
+                      event.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -290,24 +245,21 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                  if (currentState is SyncInProgress && currentState.eventId == event.id)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.sync, color: AppColors.primary),
+                      onPressed: () {
+                        context
+                            .read<EventBloc>()
+                            .add(SynchronizeEventAttendeesEvent(event.id));
+                      },
                     ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -320,7 +272,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    event['date'],
+                    '${event.startDate.toLocal()}'.split(' ')[0],
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(width: 16),
@@ -332,7 +284,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      event['location'],
+                      event.location,
                       style: const TextStyle(color: AppColors.textSecondary),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -347,7 +299,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Entradas vendidas: ${event['tickets_sold']}/${event['total_tickets']}',
+                          'Entradas vendidas: ${event.ticketsSold}/${event.totalTickets}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -355,10 +307,10 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                         ),
                         const SizedBox(height: 4),
                         LinearProgressIndicator(
-                          value: soldPercentage / 100,
+                          value: event.totalTickets > 0 ? event.ticketsSold / event.totalTickets : 0,
                           backgroundColor: AppColors.greyLight,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            soldPercentage >= 90
+                            event.totalTickets > 0 && (event.ticketsSold / event.totalTickets) >= 0.9
                                 ? AppColors.error
                                 : AppColors.primary,
                           ),
@@ -368,7 +320,7 @@ class _OrganizerEventsPageState extends State<OrganizerEventsPage> {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    '${soldPercentage.round()}%',
+                    '${event.totalTickets > 0 ? (event.ticketsSold / event.totalTickets * 100).round() : 0}%',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,

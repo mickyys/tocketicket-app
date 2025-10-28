@@ -122,6 +122,19 @@ class DatabaseHelper {
       )
     ''');
 
+    // Create attendees table
+    await db.execute('''
+      CREATE TABLE attendees (
+        validationCode TEXT PRIMARY KEY,
+        eventId TEXT NOT NULL,
+        name TEXT NOT NULL,
+        lastName TEXT NOT NULL,
+        documentNumber TEXT NOT NULL,
+        documentType TEXT NOT NULL,
+        FOREIGN KEY (eventId) REFERENCES events (id) ON DELETE CASCADE
+      )
+    ''');
+
     // Create indexes
     await db.execute('CREATE INDEX idx_orders_event_id ON orders (eventId)');
     await db.execute(
@@ -133,6 +146,10 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX idx_sync_queue_processed ON sync_queue (isProcessed)',
     );
+    await db.execute('CREATE INDEX idx_attendees_event_id ON attendees (eventId)');
+    await db.execute(
+      'CREATE INDEX idx_attendees_validation_code ON attendees (validationCode)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -140,6 +157,24 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       // Add new columns or tables for version 2
     }
+  }
+
+  Future<void> syncAttendees(String eventId, List<Map<String, dynamic>> attendees) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // First, delete all existing attendees for this event
+      await txn.delete('attendees', where: 'eventId = ?', whereArgs: [eventId]);
+
+      // Then, insert the new attendees in a batch
+      final batch = txn.batch();
+      for (final attendee in attendees) {
+        batch.insert('attendees', {
+          ...attendee,
+          'eventId': eventId, // Ensure eventId is included
+        });
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   Future<void> close() async {

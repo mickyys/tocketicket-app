@@ -8,12 +8,13 @@ class Event extends Equatable {
   final DateTime endDate;
   final String location;
   final String address;
+  final String imageUrl;
   final String organizerId;
-  final String? imageUrl;
   final bool isActive;
   final bool isPublic;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final int ticketsSold;
+  final int totalTickets;
+  final String status;
 
   const Event({
     required this.id,
@@ -23,44 +24,30 @@ class Event extends Equatable {
     required this.endDate,
     required this.location,
     required this.address,
+    required this.imageUrl,
     required this.organizerId,
-    this.imageUrl,
     required this.isActive,
     required this.isPublic,
-    this.createdAt,
-    this.updatedAt,
+    required this.ticketsSold,
+    required this.totalTickets,
+    required this.status,
   });
-
-  bool get isOngoing {
-    final now = DateTime.now();
-    return now.isAfter(startDate) && now.isBefore(endDate);
-  }
-
-  bool get isUpcoming => DateTime.now().isBefore(startDate);
-
-  bool get isPast => DateTime.now().isAfter(endDate);
-
-  String get status {
-    if (isUpcoming) return 'upcoming';
-    if (isOngoing) return 'ongoing';
-    if (isPast) return 'past';
-    return 'unknown';
-  }
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    description,
-    startDate,
-    endDate,
-    location,
-    address,
-    organizerId,
-    imageUrl,
-    isActive,
-    isPublic,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        name,
+        description,
+        startDate,
+        endDate,
+        location,
+        address,
+        imageUrl,
+        organizerId,
+        isActive,
+        isPublic,
+        ticketsSold,
+        totalTickets,
+        status,
+      ];
 }
