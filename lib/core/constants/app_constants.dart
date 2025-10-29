@@ -13,7 +13,7 @@ class AppConstants {
   // Para encontrar tu IP local, ejecuta en terminal: ifconfig | grep "inet "
 
   static const String _localNetworkUrl =
-      'http://192.168.1.193:8080'; // Tu IP local actual para iOS y dispositivos físicos
+      'https://be54ad5d1e18.ngrok-free.app'; // Tu IP local actual para iOS y dispositivos físicos
   static const String _productionUrl = 'https://api.tocketicket.com';
 
   // URL base actual - configurada para iOS y dispositivos físicos
@@ -36,34 +36,35 @@ class AppConstants {
     }
   } // Authentication Endpoints
 
-  static const String loginEndpoint = '/login';
-  static const String registerEndpoint = '/register';
-  static const String logoutEndpoint = '/logout';
-  static const String loginOtpEndpoint = '/login-otp';
-  static const String requestOtpEndpoint = '/request-otp';
-  static const String forgotPasswordEndpoint = '/forgot-password';
-  static const String resetPasswordEndpoint = '/reset-password';
-  static const String googleLoginEndpoint = '/auth/google/verify-token';
+  static const String loginEndpoint = '$baseUrl/login';
+  static const String registerEndpoint = '$baseUrl/register';
+  static const String logoutEndpoint = '$baseUrl/logout';
+  static const String loginOtpEndpoint = '$baseUrl/login-otp';
+  static const String requestOtpEndpoint = '$baseUrl/request-otp';
+  static const String forgotPasswordEndpoint = '$baseUrl/forgot-password';
+  static const String resetPasswordEndpoint = '$baseUrl/reset-password';
+  static const String googleLoginEndpoint = '$baseUrl/auth/google/verify-token';
 
   // Events Endpoints
-  static const String eventsEndpoint = '/events';
-  static const String organizerEventsEndpoint = '/organizer/events';
-  static const String publicEventEndpoint = '/public/events';
+  static const String eventsEndpoint = '$baseUrl/events';
+  static const String organizerEventsEndpoint = '$baseUrl/organizer/events';
+  static const String publicEventEndpoint = '$baseUrl/public/events';
 
   // Validation Endpoints
-  static const String validateTicketEndpoint = '/tickets/validate-qr';
-  static const String ticketStatusEndpoint = '/tickets/status';
+  static const String validateTicketEndpoint = '$baseUrl/tickets/validate-qr';
+  static const String ticketStatusEndpoint = '$baseUrl/tickets/status';
 
   // Orders Endpoints
-  static const String ordersEndpoint = '/orders';
+  static const String ordersEndpoint = '$baseUrl/orders';
   static const String ordersByEventEndpoint =
-      '/organizer/events/{eventId}/orders';
-  static const String orderByIdEndpoint = '/organizer/orders';
+      '$baseUrl/organizer/events/{eventId}/orders';
+  static const String orderByIdEndpoint = '$baseUrl/organizer/orders';
 
   // Sync Endpoints (custom for mobile app)
-  static const String syncOrdersEndpoint = '/organizer/events/{eventId}/orders';
+  static const String syncOrdersEndpoint =
+      '$baseUrl/organizer/events/{eventId}/orders';
   static const String syncTicketsEndpoint =
-      '/events/{eventId}/tickets'; // Storage Keys
+      '$baseUrl/events/{eventId}/tickets'; // Storage Keys
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
   static const String userDataKey = 'user_data';

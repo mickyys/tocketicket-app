@@ -5,28 +5,19 @@ part 'validation_result_model.g.dart';
 
 @JsonSerializable()
 class ValidationResultModel extends Equatable {
-  final bool isValid;
-  final String message;
-  final String validationCode;
-  final String status;
-  final String? eventName;
-  final String? ticketName;
-  final String? participantName;
-  final String? participantEmail;
-  final DateTime? validatedAt;
-  final String? validatedBy;
+  final String eventName;
+  final String participantName;
+  final String participantRut;
+  @JsonKey(name: 'ticketStatus')
+  final String ticketStatus;
+  final String categoryName;
 
   const ValidationResultModel({
-    required this.isValid,
-    required this.message,
-    required this.validationCode,
-    required this.status,
-    this.eventName,
-    this.ticketName,
-    this.participantName,
-    this.participantEmail,
-    this.validatedAt,
-    this.validatedBy,
+    required this.eventName,
+    required this.participantName,
+    required this.participantRut,
+    required this.ticketStatus,
+    required this.categoryName,
   });
 
   factory ValidationResultModel.fromJson(Map<String, dynamic> json) =>
@@ -35,42 +26,27 @@ class ValidationResultModel extends Equatable {
   Map<String, dynamic> toJson() => _$ValidationResultModelToJson(this);
 
   ValidationResultModel copyWith({
-    bool? isValid,
-    String? message,
-    String? validationCode,
-    String? status,
     String? eventName,
-    String? ticketName,
     String? participantName,
-    String? participantEmail,
-    DateTime? validatedAt,
-    String? validatedBy,
+    String? participantRut,
+    String? ticketStatus,
+    String? categoryName,
   }) {
     return ValidationResultModel(
-      isValid: isValid ?? this.isValid,
-      message: message ?? this.message,
-      validationCode: validationCode ?? this.validationCode,
-      status: status ?? this.status,
       eventName: eventName ?? this.eventName,
-      ticketName: ticketName ?? this.ticketName,
       participantName: participantName ?? this.participantName,
-      participantEmail: participantEmail ?? this.participantEmail,
-      validatedAt: validatedAt ?? this.validatedAt,
-      validatedBy: validatedBy ?? this.validatedBy,
+      participantRut: participantRut ?? this.participantRut,
+      ticketStatus: ticketStatus ?? this.ticketStatus,
+      categoryName: categoryName ?? this.categoryName,
     );
   }
 
   @override
   List<Object?> get props => [
-    isValid,
-    message,
-    validationCode,
-    status,
     eventName,
-    ticketName,
     participantName,
-    participantEmail,
-    validatedAt,
-    validatedBy,
+    participantRut,
+    ticketStatus,
+    categoryName,
   ];
 }

@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(const TocketValidatorApp());
 
     // Verify that splash screen is displayed
-    expect(find.text('Tocket Validator'), findsOneWidget);
+    expect(find.text('Tocke Validator'), findsOneWidget);
     expect(find.text('Validador de entradas QR'), findsOneWidget);
     expect(find.byIcon(Icons.qr_code_scanner), findsOneWidget);
   });

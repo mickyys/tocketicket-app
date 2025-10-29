@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/config/debug_config.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
@@ -18,6 +19,19 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-rellenar campos con credenciales de debug si está habilitado
+    if (DebugConfig.enableDebugMode) {
+      _emailController.text = DebugConfig.debugEmail;
+      _passwordController.text = DebugConfig.debugPassword;
+      DebugConfig.debugLog(
+        'Campos de login pre-rellenados con credenciales de debug',
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -114,6 +128,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 40),
                 _buildLogo(),
                 const SizedBox(height: 40),
+                if (DebugConfig.enableDebugMode) _buildDebugBanner(),
+                if (DebugConfig.enableDebugMode) const SizedBox(height: 16),
                 _buildTitle(),
                 const SizedBox(height: 8),
                 _buildSubtitle(),
@@ -409,6 +425,42 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDebugBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        border: Border.all(color: Colors.orange, width: 1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bug_report, color: Colors.orange, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'MODO DEBUG ACTIVADO',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Campos pre-rellenados: ${DebugConfig.debugEmail}',
+                  style: const TextStyle(color: Colors.orange, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

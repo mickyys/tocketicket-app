@@ -1,4 +1,4 @@
-package com.example.tocket_validator
+package cl.tocke.tocke_validator
 
 import io.flutter.embedding.android.FlutterActivity
 

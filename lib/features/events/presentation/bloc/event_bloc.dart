@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
-import 'package.equatable/equatable.dart';
-import '../../../../core/usecases/no_params.dart';
+import 'package:equatable/equatable.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
@@ -12,10 +13,8 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   final SynchronizeEventAttendees synchronizeEventAttendees;
   final GetEvents getEvents;
 
-  EventBloc({
-    required this.synchronizeEventAttendees,
-    required this.getEvents,
-  }) : super(EventInitial()) {
+  EventBloc({required this.synchronizeEventAttendees, required this.getEvents})
+    : super(EventInitial()) {
     on<FetchEvents>(_onFetchEvents);
     on<SynchronizeEventAttendeesEvent>(_onSynchronizeEventAttendees);
   }
@@ -25,11 +24,27 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     Emitter<EventState> emit,
   ) async {
     emit(EventLoading());
-    final result = await getEvents(NoParams());
-    result.fold(
-      (failure) => emit(EventError('Failed to fetch events')),
-      (events) => emit(EventLoaded(events)),
-    );
+    try {
+      final result = await getEvents(NoParams());
+      result.fold(
+        (failure) {
+          String errorMessage = 'Error al cargar eventos';
+          if (failure is ServerFailure) {
+            errorMessage = 'Error del servidor. Intenta de nuevo.';
+          } else if (failure is NetworkFailure) {
+            errorMessage = 'Error de conexión. Verifica tu internet.';
+          } else if (failure is ValidationFailure) {
+            errorMessage = failure.message;
+          }
+          emit(EventError(errorMessage));
+        },
+        (events) {
+          emit(EventLoaded(events));
+        },
+      );
+    } catch (e) {
+      emit(EventError('Error inesperado: ${e.toString()}'));
+    }
   }
 
   Future<void> _onSynchronizeEventAttendees(
@@ -37,10 +52,21 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     Emitter<EventState> emit,
   ) async {
     emit(SyncInProgress(event.eventId));
-    final result = await synchronizeEventAttendees(event.eventId);
-    result.fold(
-      (failure) => emit(SyncFailure(event.eventId, 'Failed to sync attendees')),
-      (_) => emit(SyncSuccess(event.eventId)),
-    );
+    try {
+      final result = await synchronizeEventAttendees(event.eventId);
+      result.fold((failure) {
+        String errorMessage = 'Error al sincronizar asistentes';
+        if (failure is ServerFailure) {
+          errorMessage = 'Error del servidor al sincronizar';
+        } else if (failure is NetworkFailure) {
+          errorMessage = 'Error de conexión durante la sincronización';
+        } else if (failure is ValidationFailure) {
+          errorMessage = failure.message;
+        }
+        emit(SyncFailure(event.eventId, errorMessage));
+      }, (_) => emit(SyncSuccess(event.eventId)));
+    } catch (e) {
+      emit(SyncFailure(event.eventId, 'Error inesperado: ${e.toString()}'));
+    }
   }
 }

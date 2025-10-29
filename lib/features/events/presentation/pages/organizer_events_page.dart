@@ -4,6 +4,11 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
+import '../../../scanner/presentation/pages/qr_scanner_page.dart';
+import '../../../scanner/presentation/pages/scan_history_page.dart';
+import '../../domain/entities/event.dart';
+import '../../domain/usecases/get_events.dart';
+import '../../domain/usecases/synchronize_event_attendees.dart';
 import '../bloc/event_bloc.dart';
 
 class OrganizerEventsPage extends StatelessWidget {
@@ -13,7 +18,8 @@ class OrganizerEventsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => EventBloc(
-        synchronizeEventAttendees: context.read(), // Assuming you have DI setup
+        synchronizeEventAttendees: context.read<SynchronizeEventAttendees>(),
+        getEvents: context.read<GetEvents>(),
       )..add(FetchEvents()),
       child: const OrganizerEventsView(),
     );
@@ -114,18 +120,76 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navegar a crear evento
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Crear evento - Funcionalidad pendiente'),
-              backgroundColor: AppColors.info,
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(AppConstants.padding),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
             ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: AppColors.white),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Botón de historial de escaneos
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ScanHistoryPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.history,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
+                tooltip: 'Historial de escaneos',
+              ),
+              // Botón central del escáner QR
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.borderRadius,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const QRScannerPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.qr_code_scanner,
+                    size: 32,
+                    color: AppColors.white,
+                  ),
+                  iconSize: 32,
+                  padding: const EdgeInsets.all(16),
+                  tooltip: 'Escanear QR',
+                ),
+              ),
+              // Espacio para equilibrar el diseño
+              const SizedBox(width: 28 + 16), // Tamaño del ícono + padding
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -182,12 +246,64 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
 
   Widget _buildEventsList() {
     return BlocBuilder<EventBloc, EventState>(
+      buildWhen: (previous, current) {
+        // Solo rebuild para estados de eventos, no para sync
+        return current is EventInitial ||
+            current is EventLoading ||
+            current is EventLoaded ||
+            current is EventError;
+      },
       builder: (context, state) {
         if (state is EventLoading || state is EventInitial) {
           return _buildLoading();
         } else if (state is EventLoaded) {
           if (state.events.isEmpty) {
-            return const Center(child: Text('No tienes eventos.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.event_note,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No tienes eventos aún',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Crea tu primer evento para comenzar',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: Navegar a crear evento
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Crear evento - Funcionalidad pendiente',
+                          ),
+                          backgroundColor: AppColors.info,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Crear Evento'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
@@ -203,9 +319,47 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
             ),
           );
         } else if (state is EventError) {
-          return Center(child: Text('Error: ${state.message}'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppColors.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error al cargar eventos',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  state.message,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<EventBloc>().add(FetchEvents());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                  ),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          );
         }
-        return const Center(child: Text('Estado no manejado.'));
+        // Con buildWhen, este caso no debería ocurrir
+        return _buildLoading();
       },
     );
   }
@@ -245,7 +399,8 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                       ),
                     ),
                   ),
-                  if (currentState is SyncInProgress && currentState.eventId == event.id)
+                  if (currentState is SyncInProgress &&
+                      currentState.eventId == event.id)
                     const SizedBox(
                       width: 24,
                       height: 24,
@@ -255,9 +410,9 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                     IconButton(
                       icon: const Icon(Icons.sync, color: AppColors.primary),
                       onPressed: () {
-                        context
-                            .read<EventBloc>()
-                            .add(SynchronizeEventAttendeesEvent(event.id));
+                        context.read<EventBloc>().add(
+                          SynchronizeEventAttendeesEvent(event.id),
+                        );
                       },
                     ),
                 ],
@@ -307,10 +462,14 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                         ),
                         const SizedBox(height: 4),
                         LinearProgressIndicator(
-                          value: event.totalTickets > 0 ? event.ticketsSold / event.totalTickets : 0,
+                          value: event.totalTickets > 0
+                              ? event.ticketsSold / event.totalTickets
+                              : 0,
                           backgroundColor: AppColors.greyLight,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            event.totalTickets > 0 && (event.ticketsSold / event.totalTickets) >= 0.9
+                            event.totalTickets > 0 &&
+                                    (event.ticketsSold / event.totalTickets) >=
+                                        0.9
                                 ? AppColors.error
                                 : AppColors.primary,
                           ),
