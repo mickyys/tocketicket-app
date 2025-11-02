@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
+import 'core/di/dependency_injection.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/events/presentation/pages/organizer_events_page.dart';
 
@@ -38,13 +40,16 @@ class TocketValidatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const SplashScreen(),
+    return MultiRepositoryProvider(
+      providers: DependencyInjection.repositoryProviders,
+      child: MaterialApp(
+        title: AppConstants.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const SplashScreen(),
+      ),
     );
   }
 }
@@ -102,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Icon(Icons.qr_code_scanner, size: 120, color: Colors.white),
             SizedBox(height: 24),
             Text(
-              'Tocket Validator',
+              'Tocke Validator',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

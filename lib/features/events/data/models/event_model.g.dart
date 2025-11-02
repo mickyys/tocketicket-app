@@ -14,16 +14,13 @@ EventModel _$EventModelFromJson(Map<String, dynamic> json) => EventModel(
       endDate: DateTime.parse(json['endDate'] as String),
       location: json['location'] as String,
       address: json['address'] as String,
+      imageUrl: json['imageUrl'] as String,
       organizerId: json['organizerId'] as String,
-      imageUrl: json['imageUrl'] as String?,
       isActive: json['isActive'] as bool,
       isPublic: json['isPublic'] as bool,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      ticketsSold: (json['ticketsSold'] as num).toInt(),
+      totalTickets: (json['totalTickets'] as num).toInt(),
+      status: json['status'] as String,
     );
 
 Map<String, dynamic> _$EventModelToJson(EventModel instance) =>
@@ -35,10 +32,11 @@ Map<String, dynamic> _$EventModelToJson(EventModel instance) =>
       'endDate': instance.endDate.toIso8601String(),
       'location': instance.location,
       'address': instance.address,
-      'organizerId': instance.organizerId,
       'imageUrl': instance.imageUrl,
+      'organizerId': instance.organizerId,
       'isActive': instance.isActive,
       'isPublic': instance.isPublic,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'ticketsSold': instance.ticketsSold,
+      'totalTickets': instance.totalTickets,
+      'status': instance.status,
     };

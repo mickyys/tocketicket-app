@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Colors - Tocket Ticket Brand
-  static const Color primary = Color(0xFF6C63FF);
-  static const Color primaryDark = Color(0xFF5A52E8);
-  static const Color primaryLight = Color(0xFF8B85FF);
+  // Primary Colors - Tocke Brand (Magenta)
+  static const Color primary = Color(0xFFE50065);
+  static const Color primaryDark = Color(0xFFB8004D);
+  static const Color primaryLight = Color(0xFFFF4D99);
 
-  // Secondary Colors
-  static const Color secondary = Color(0xFF00D4AA);
-  static const Color secondaryDark = Color(0xFF00B395);
-  static const Color secondaryLight = Color(0xFF33DDB8);
+  // Secondary Colors - Verde Competencias
+  static const Color secondary = Color(0xFF00994D);
+  static const Color secondaryDark = Color(0xFF007A3D);
+  static const Color secondaryLight = Color(0xFF00C15A);
+
+  // Timer Banner Color - Variante Verde
+  static const Color timerBanner = Color(0xFF00C15A);
 
   // Validation Colors
-  static const Color success = Color(0xFF4CAF50);
-  static const Color successLight = Color(0xFF81C784);
-  static const Color successDark = Color(0xFF388E3C);
+  static const Color success = Color(0xFF00994D);
+  static const Color successLight = Color(0xFF00C15A);
+  static const Color successDark = Color(0xFF007A3D);
 
-  static const Color error = Color(0xFFE53E3E);
-  static const Color errorLight = Color(0xFFFF6B6B);
-  static const Color errorDark = Color(0xFFD32F2F);
+  static const Color error = Color(0xFFE50065);
+  static const Color errorLight = Color(0xFFFF4D99);
+  static const Color errorDark = Color(0xFFB8004D);
 
   static const Color warning = Color(0xFFFFA726);
   static const Color warningLight = Color(0xFFFFD54F);
@@ -30,31 +33,31 @@ class AppColors {
 
   // Neutral Colors
   static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF000000);
-  static const Color grey = Color(0xFF9E9E9E);
-  static const Color greyLight = Color(0xFFE0E0E0);
+  static const Color black = Color(0xFF111111);
+  static const Color grey = Color(0xFF6E6E6E);
+  static const Color greyLight = Color(0xFFE2E2E2);
   static const Color greyDark = Color(0xFF424242);
 
   // Background Colors
-  static const Color background = Color(0xFFF5F5F5);
+  static const Color background = Color(0xFFF8F8F8);
   static const Color backgroundDark = Color(0xFF121212);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textDisabled = Color(0xFFBDBDBD);
+  static const Color textPrimary = Color(0xFF111111);
+  static const Color textSecondary = Color(0xFF6E6E6E);
+  static const Color textDisabled = Color(0xFFE2E2E2);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
-  static const Color textOnSecondary = Color(0xFF000000);
+  static const Color textOnSecondary = Color(0xFFFFFFFF);
 
   // Dark Theme Colors
   static const Color textPrimaryDark = Color(0xFFFFFFFF);
-  static const Color textSecondaryDark = Color(0xFFB0B0B0);
-  static const Color textDisabledDark = Color(0xFF616161);
+  static const Color textSecondaryDark = Color(0xFF6E6E6E);
+  static const Color textDisabledDark = Color(0xFFE2E2E2);
 
   // Border Colors
-  static const Color border = Color(0xFFE0E0E0);
+  static const Color border = Color(0xFFE2E2E2);
   static const Color borderDark = Color(0xFF424242);
 
   // Shadow Colors
@@ -64,7 +67,7 @@ class AppColors {
   // QR Scanner Colors
   static const Color scannerOverlay = Color(0x80000000);
   static const Color scannerFrame = Color(0xFFFFFFFF);
-  static const Color scannerCorner = Color(0xFF6C63FF);
+  static const Color scannerCorner = Color(0xFFE50065);
 }
 
 class AppGradients {

@@ -1,76 +1,72 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
+import '../../domain/entities/validation_result.dart';
 
 part 'validation_result_model.g.dart';
 
 @JsonSerializable()
 class ValidationResultModel extends Equatable {
-  final bool isValid;
-  final String message;
-  final String validationCode;
-  final String status;
-  final String? eventName;
-  final String? ticketName;
-  final String? participantName;
-  final String? participantEmail;
-  final DateTime? validatedAt;
-  final String? validatedBy;
+  final String eventName;
+  final String participantName;
+  final String participantDocument;
+  final String documentType;
+  @JsonKey(name: 'ticketStatus')
+  final String ticketStatus;
+  final String categoryName;
 
   const ValidationResultModel({
-    required this.isValid,
-    required this.message,
-    required this.validationCode,
-    required this.status,
-    this.eventName,
-    this.ticketName,
-    this.participantName,
-    this.participantEmail,
-    this.validatedAt,
-    this.validatedBy,
+    required this.eventName,
+    required this.participantName,
+    required this.participantDocument,
+    required this.documentType,
+    required this.ticketStatus,
+    required this.categoryName,
   });
+
+  // Getter para mantener compatibilidad con código existente
+  String get participantRut => participantDocument;
 
   factory ValidationResultModel.fromJson(Map<String, dynamic> json) =>
       _$ValidationResultModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$ValidationResultModelToJson(this);
 
+  ValidationResult toEntity() {
+    return ValidationResult(
+      eventName: eventName,
+      participantName: participantName,
+      participantDocument: participantDocument,
+      documentType: documentType,
+      ticketStatus: ticketStatus,
+      categoryName: categoryName,
+    );
+  }
+
   ValidationResultModel copyWith({
-    bool? isValid,
-    String? message,
-    String? validationCode,
-    String? status,
     String? eventName,
-    String? ticketName,
     String? participantName,
-    String? participantEmail,
-    DateTime? validatedAt,
-    String? validatedBy,
+    String? participantDocument,
+    String? documentType,
+    String? ticketStatus,
+    String? categoryName,
   }) {
     return ValidationResultModel(
-      isValid: isValid ?? this.isValid,
-      message: message ?? this.message,
-      validationCode: validationCode ?? this.validationCode,
-      status: status ?? this.status,
       eventName: eventName ?? this.eventName,
-      ticketName: ticketName ?? this.ticketName,
       participantName: participantName ?? this.participantName,
-      participantEmail: participantEmail ?? this.participantEmail,
-      validatedAt: validatedAt ?? this.validatedAt,
-      validatedBy: validatedBy ?? this.validatedBy,
+      participantDocument: participantDocument ?? this.participantDocument,
+      documentType: documentType ?? this.documentType,
+      ticketStatus: ticketStatus ?? this.ticketStatus,
+      categoryName: categoryName ?? this.categoryName,
     );
   }
 
   @override
   List<Object?> get props => [
-    isValid,
-    message,
-    validationCode,
-    status,
     eventName,
-    ticketName,
     participantName,
-    participantEmail,
-    validatedAt,
-    validatedBy,
+    participantDocument,
+    documentType,
+    ticketStatus,
+    categoryName,
   ];
 }

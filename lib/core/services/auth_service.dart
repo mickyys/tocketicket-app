@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
+import '../utils/http_header_utils.dart';
 import '../utils/logger.dart';
 
 class AuthService {
@@ -13,28 +14,29 @@ class AuthService {
   }) async {
     try {
       AppLogger.info('Intentando login para: $email');
+      AppLogger.debug('URL de login: ${AppConstants.loginEndpoint}');
 
       final response = await http
           .post(
-            Uri.parse('${AppConstants.baseUrl}${AppConstants.loginEndpoint}'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            Uri.parse(AppConstants.loginEndpoint),
+            headers: HttpHeaderUtils.baseHeaders,
             body: jsonEncode({'email': email, 'password': password}),
           )
           .timeout(AppConstants.connectTimeout);
 
       final responseData = jsonDecode(response.body);
+      AppLogger.info('Respuesta del servidor: $responseData');
 
       if (response.statusCode == 200) {
         AppLogger.info('Login exitoso para: $email');
 
+        AppLogger.info("responseData: $responseData");
+
         // Guardar tokens de forma segura
-        if (responseData['access_token'] != null) {
+        if (responseData['token'] != null) {
           await _storage.write(
             key: AppConstants.accessTokenKey,
-            value: responseData['access_token'],
+            value: responseData['token'],
           );
         }
 

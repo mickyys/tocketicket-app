@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:tocke_validator/main.dart';
+import 'package:tocke/main.dart';
 
 void main() {
   testWidgets('App starts with splash screen', (WidgetTester tester) async {
@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(const TocketValidatorApp());
 
     // Verify that splash screen is displayed
-    expect(find.text('Tocket Validator'), findsOneWidget);
+    expect(find.text('Tocke Validator'), findsOneWidget);
     expect(find.text('Validador de entradas QR'), findsOneWidget);
     expect(find.byIcon(Icons.qr_code_scanner), findsOneWidget);
   });
