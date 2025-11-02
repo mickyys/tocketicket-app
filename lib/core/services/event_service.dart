@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:tocke_validator/core/utils/logger.dart';
+import '../utils/logger.dart';
 import '../constants/app_constants.dart';
 import '../utils/http_header_utils.dart';
 import 'auth_service.dart';

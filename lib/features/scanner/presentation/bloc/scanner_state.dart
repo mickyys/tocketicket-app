@@ -63,3 +63,13 @@ class ScannerError extends ScannerState {
   @override
   List<Object> get props => [message];
 }
+
+/// Estado cuando el ticket no existe (404)
+class TicketNotFound extends ScannerState {
+  final String validationCode;
+
+  const TicketNotFound(this.validationCode);
+
+  @override
+  List<Object> get props => [validationCode];
+}

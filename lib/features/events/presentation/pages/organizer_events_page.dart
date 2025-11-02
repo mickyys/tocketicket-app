@@ -6,6 +6,9 @@ import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
+import '../../../scanner/presentation/bloc/scanner_bloc.dart';
+import '../../../scanner/domain/usecases/check_ticket_status.dart';
+import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
@@ -63,16 +66,29 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mis Eventos'),
+        title: const Text(
+          'Mis Eventos',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
+        elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<EventBloc>().add(FetchEvents());
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                context.read<EventBloc>().add(FetchEvents());
+              },
+              tooltip: 'Actualizar eventos',
+            ),
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -80,6 +96,14 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                 _handleLogout();
               }
             },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.more_vert),
+            ),
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'logout',
@@ -99,16 +123,38 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
         listener: (context, state) {
           if (state is SyncSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Evento sincronizado con éxito'),
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Evento sincronizado con éxito'),
+                  ],
+                ),
                 backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             );
           } else if (state is SyncFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error al sincronizar: ${state.message}'),
+                content: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Error al sincronizar: ${state.message}'),
+                    ),
+                  ],
+                ),
                 backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             );
           }
@@ -123,12 +169,13 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(AppConstants.padding),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
+              color: AppColors.shadow,
+              blurRadius: 12,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
@@ -137,33 +184,49 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Botón de historial de escaneos
-              IconButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const ScanHistoryPage(),
-                    ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.history,
-                  size: 28,
-                  color: AppColors.primary,
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
                 ),
-                tooltip: 'Historial de escaneos',
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider(
+                          create: (context) => ScannerBloc(
+                            checkTicketStatus: context
+                                .read<CheckTicketStatus>(),
+                            validateTicketQR: context.read<ValidateTicketQR>(),
+                          ),
+                          child: const ScanHistoryPage(),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.history,
+                    size: 24,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Historial de escaneos',
+                ),
               ),
               // Botón central del escáner QR
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.borderRadius,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.secondary, AppColors.successDark],
                   ),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.secondary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -171,22 +234,51 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const QRScannerPage(),
+                        builder: (context) => BlocProvider(
+                          create: (context) => ScannerBloc(
+                            checkTicketStatus: context
+                                .read<CheckTicketStatus>(),
+                            validateTicketQR: context.read<ValidateTicketQR>(),
+                          ),
+                          child: const QRScannerPage(),
+                        ),
                       ),
                     );
                   },
                   icon: const Icon(
                     Icons.qr_code_scanner,
-                    size: 32,
+                    size: 28,
                     color: AppColors.white,
                   ),
-                  iconSize: 32,
+                  iconSize: 28,
                   padding: const EdgeInsets.all(16),
                   tooltip: 'Escanear QR',
                 ),
               ),
-              // Espacio para equilibrar el diseño
-              const SizedBox(width: 28 + 16), // Tamaño del ícono + padding
+              // Botón de información/estadísticas
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Estadísticas - Próximamente'),
+                        backgroundColor: AppColors.info,
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.analytics_outlined,
+                    size: 24,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Estadísticas',
+                ),
+              ),
             ],
           ),
         ),
@@ -197,47 +289,105 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
   Widget _buildUserInfo() {
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.all(AppConstants.margin),
       padding: const EdgeInsets.all(AppConstants.padding),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        border: const Border(bottom: BorderSide(color: AppColors.greyLight)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.primary.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Bienvenido, ${userData!['name'] ?? userData!['email'] ?? 'Usuario'}',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: const Icon(Icons.person, color: AppColors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bienvenido,',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  userData!['name'] ?? userData!['email'] ?? 'Usuario',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (userData!['email'] != null)
+                  Text(
+                    userData!['email'],
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (userData!['email'] != null)
-            Text(
-              userData!['email'],
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: const Icon(
+              Icons.verified_user,
+              color: AppColors.secondary,
+              size: 20,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildLoading() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          Container(
+            width: 60,
+            height: 60,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              strokeWidth: 3,
+            ),
           ),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 24),
+          const Text(
             'Cargando eventos...',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -262,43 +412,82 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.event_note,
-                    size: 64,
-                    color: AppColors.textSecondary,
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(60),
+                      border: Border.all(color: AppColors.border, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.event_note,
+                      size: 60,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   const Text(
                     'No tienes eventos aún',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Crea tu primer evento para comenzar',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Navegar a crear evento
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Crear evento - Funcionalidad pendiente',
-                          ),
-                          backgroundColor: AppColors.info,
+                  const SizedBox(height: 32),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.primary, AppColors.primaryDark],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Crear Evento'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Navegar a crear evento
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Crear evento - Funcionalidad pendiente',
+                            ),
+                            backgroundColor: AppColors.info,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add, color: AppColors.white),
+                      label: const Text(
+                        'Crear Evento',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -323,36 +512,58 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: AppColors.error,
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 40,
+                    color: AppColors.error,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(
+                const SizedBox(height: 24),
+                const Text(
                   'Error al cargar eventos',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  state.message,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    state.message,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
                   onPressed: () {
                     context.read<EventBloc>().add(FetchEvents());
                   },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text('Reintentar'),
                 ),
               ],
             ),
@@ -365,20 +576,33 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
   }
 
   Widget _buildEventCard(Event event, EventState currentState) {
-    return Card(
+    final soldPercentage = event.totalTickets > 0
+        ? event.ticketsSold / event.totalTickets
+        : 0.0;
+
+    return Container(
       margin: const EdgeInsets.only(bottom: AppConstants.margin),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           // TODO: Navegar a detalles del evento
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Ver detalles de: ${event.name}'),
               backgroundColor: AppColors.info,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         },
@@ -387,105 +611,187 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header con título y botón sync
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       event.name,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                   if (currentState is SyncInProgress &&
                       currentState.eventId == event.id)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
                     )
                   else
-                    IconButton(
-                      icon: const Icon(Icons.sync, color: AppColors.primary),
-                      onPressed: () {
-                        context.read<EventBloc>().add(
-                          SynchronizeEventAttendeesEvent(event.id),
-                        );
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${event.startDate.toLocal()}'.split(' ')[0],
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: 16),
-                  const Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      event.location,
-                      style: const TextStyle(color: AppColors.textSecondary),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Entradas vendidas: ${event.ticketsSold}/${event.totalTickets}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.sync,
+                          color: AppColors.secondary,
+                          size: 20,
                         ),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: event.totalTickets > 0
-                              ? event.ticketsSold / event.totalTickets
-                              : 0,
-                          backgroundColor: AppColors.greyLight,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            event.totalTickets > 0 &&
-                                    (event.ticketsSold / event.totalTickets) >=
-                                        0.9
-                                ? AppColors.error
-                                : AppColors.primary,
+                        onPressed: () {
+                          context.read<EventBloc>().add(
+                            SynchronizeEventAttendeesEvent(event.id),
+                          );
+                        },
+                        tooltip: 'Sincronizar asistentes',
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Información de fecha y ubicación
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${event.startDate.toLocal()}'.split(' ')[0],
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Text(
-                    '${event.totalTickets > 0 ? (event.ticketsSold / event.totalTickets * 100).round() : 0}%',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            event.location,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              // Estadísticas de venta
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Entradas vendidas',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: soldPercentage >= 0.9
+                                ? AppColors.error.withValues(alpha: 0.1)
+                                : AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${(soldPercentage * 100).round()}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: soldPercentage >= 0.9
+                                  ? AppColors.error
+                                  : AppColors.success,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${event.ticketsSold} de ${event.totalTickets} entradas',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: soldPercentage,
+                      backgroundColor: AppColors.border,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        soldPercentage >= 0.9
+                            ? AppColors.error
+                            : AppColors.secondary,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                      minHeight: 6,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

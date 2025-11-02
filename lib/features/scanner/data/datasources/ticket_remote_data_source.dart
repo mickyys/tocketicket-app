@@ -47,13 +47,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
         final responseData = jsonDecode(response.body);
         return ValidationResultModel.fromJson(responseData);
       } else if (response.statusCode == 404) {
-        // Ticket no encontrado
-        return const ValidationResultModel(
-          isValid: false,
-          message: 'Ticket no encontrado',
-          validationCode: '',
-          status: 'not_found',
-        );
+        throw ServerException('Ticket no encontrado');
       } else if (response.statusCode == 401) {
         throw ServerException('Token de autenticación inválido');
       } else {
@@ -103,19 +97,9 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
         return ValidationResultModel.fromJson(responseData);
       } else if (response.statusCode == 400) {
         final responseData = jsonDecode(response.body);
-        return ValidationResultModel(
-          isValid: false,
-          message: responseData['message'] ?? 'Ticket inválido',
-          validationCode: validationCode,
-          status: 'invalid',
-        );
+        throw ServerException(responseData['message'] ?? 'Ticket inválido');
       } else if (response.statusCode == 404) {
-        return ValidationResultModel(
-          isValid: false,
-          message: 'Ticket no encontrado',
-          validationCode: validationCode,
-          status: 'not_found',
-        );
+        throw ServerException('Ticket no encontrado');
       } else if (response.statusCode == 401) {
         throw ServerException('Token de autenticación inválido');
       } else {

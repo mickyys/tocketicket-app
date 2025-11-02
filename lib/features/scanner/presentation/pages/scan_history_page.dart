@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/document_formatter.dart';
 import '../../domain/entities/validation_result.dart';
 import '../bloc/scanner_bloc.dart';
 import '../bloc/scanner_state.dart';
@@ -17,15 +18,22 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Historial de Escaneos'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
+        elevation: 2,
+        shadowColor: AppColors.shadow,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
             onPressed: () => _showClearHistoryDialog(context),
             tooltip: 'Limpiar historial',
+            style: IconButton.styleFrom(
+              foregroundColor: AppColors.white,
+              highlightColor: AppColors.white.withValues(alpha: 0.1),
+            ),
           ),
         ],
       ),
@@ -42,62 +50,87 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     // Por ahora mostramos datos de ejemplo
     final List<ValidationResult> historyItems = [
       const ValidationResult(
-        isValid: true,
-        message: 'Ticket válido',
-        validationCode: 'TKT-001-ABC123',
-        status: ValidationStatus.valid,
         eventName: 'Concierto Rock 2025',
-        ticketName: 'VIP',
         participantName: 'Juan Pérez',
-        participantEmail: 'juan@email.com',
-        validatedAt: null,
+        participantDocument: '123456789',
+        documentType: 'rut',
+        ticketStatus: 'valid',
+        categoryName: 'VIP',
       ),
       const ValidationResult(
-        isValid: false,
-        message: 'Ticket ya utilizado',
-        validationCode: 'TKT-002-DEF456',
-        status: ValidationStatus.used,
         eventName: 'Festival de Jazz',
-        ticketName: 'General',
         participantName: 'María González',
-        participantEmail: 'maria@email.com',
-        validatedAt: null,
+        participantDocument: 'PP1234567',
+        documentType: 'pasaporte',
+        ticketStatus: 'used',
+        categoryName: 'General',
+      ),
+      const ValidationResult(
+        eventName: 'Evento Corporativo',
+        participantName: 'Carlos Rodríguez',
+        participantDocument: '987654321',
+        documentType: 'rut',
+        ticketStatus: 'expired',
+        categoryName: 'Ejecutivo',
       ),
     ];
 
     if (historyItems.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.history, size: 64, color: AppColors.textSecondary),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay escaneos recientes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+      return Container(
+        color: AppColors.background,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.greyLight.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.history,
+                  size: 48,
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Los códigos QR escaneados aparecerán aquí',
-              style: TextStyle(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              const SizedBox(height: 24),
+              const Text(
+                'No hay escaneos recientes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'Los códigos QR escaneados aparecerán aquí',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppConstants.padding),
-      itemCount: historyItems.length,
-      itemBuilder: (context, index) {
-        final item = historyItems[index];
-        return _buildHistoryCard(item);
-      },
+    return Container(
+      color: AppColors.background,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppConstants.padding),
+        itemCount: historyItems.length,
+        itemBuilder: (context, index) {
+          final item = historyItems[index];
+          return _buildHistoryCard(item);
+        },
+      ),
     );
   }
 
@@ -105,11 +138,16 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.margin),
       elevation: 2,
+      color: AppColors.surface,
+      shadowColor: AppColors.shadow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        side: BorderSide(color: AppColors.border, width: 0.5),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        splashColor: AppColors.primary.withValues(alpha: 0.1),
+        highlightColor: AppColors.primary.withValues(alpha: 0.05),
         onTap: () => _showDetailDialog(result),
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.padding),
@@ -119,19 +157,36 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               Row(
                 children: [
                   Icon(
-                    _getStatusIcon(result.status),
-                    color: _getStatusColor(result.status),
+                    _getStatusIcon(result.ticketStatus),
+                    color: _getStatusColor(result.ticketStatus),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      result.validationCode,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DocumentFormatter.formatDocument(
+                            result.participantDocument,
+                            result.documentType,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          DocumentFormatter.getDocumentTypeDisplay(
+                            result.documentType,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Container(
@@ -141,20 +196,20 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                     ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(
-                        result.status,
+                        result.ticketStatus,
                       ).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _getStatusColor(
-                          result.status,
+                          result.ticketStatus,
                         ).withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
-                      result.status.displayName,
+                      _getStatusDisplayName(result.ticketStatus),
                       style: TextStyle(
                         fontSize: 12,
-                        color: _getStatusColor(result.status),
+                        color: _getStatusColor(result.ticketStatus),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -162,46 +217,42 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              if (result.eventName != null) ...[
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.event,
-                      size: 16,
-                      color: AppColors.textSecondary,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.event,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      result.eventName,
+                      style: const TextStyle(color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        result.eventName!,
-                        style: const TextStyle(color: AppColors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      result.participantName,
+                      style: const TextStyle(color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-              ],
-              if (result.participantName != null) ...[
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.person,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        result.participantName!,
-                        style: const TextStyle(color: AppColors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-              ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   const Icon(
@@ -236,64 +287,101 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        ),
         title: Row(
           children: [
-            Icon(
-              _getStatusIcon(result.status),
-              color: _getStatusColor(result.status),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _getStatusColor(
+                  result.ticketStatus,
+                ).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _getStatusIcon(result.ticketStatus),
+                color: _getStatusColor(result.ticketStatus),
+                size: 20,
+              ),
             ),
-            const SizedBox(width: 8),
-            const Expanded(child: Text('Detalles del Ticket')),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Detalles del Ticket',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDetailRow('Código', result.validationCode),
-              _buildDetailRow('Estado', result.status.displayName),
-              _buildDetailRow('Mensaje', result.message),
-              if (result.eventName != null)
-                _buildDetailRow('Evento', result.eventName!),
-              if (result.ticketName != null)
-                _buildDetailRow('Tipo de Ticket', result.ticketName!),
-              if (result.participantName != null)
-                _buildDetailRow('Participante', result.participantName!),
-              if (result.participantEmail != null)
-                _buildDetailRow('Email', result.participantEmail!),
-              if (result.validatedAt != null)
+        content: Container(
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 _buildDetailRow(
-                  'Validado el',
-                  _formatDate(result.validatedAt!),
+                  DocumentFormatter.getDocumentTypeDisplay(result.documentType),
+                  DocumentFormatter.formatDocument(
+                    result.participantDocument,
+                    result.documentType,
+                  ),
                 ),
-              if (result.validatedBy != null)
-                _buildDetailRow('Validado por', result.validatedBy!),
-            ],
+                _buildDetailRow(
+                  'Estado',
+                  _getStatusDisplayName(result.ticketStatus),
+                ),
+                _buildDetailRow('Evento', result.eventName),
+                _buildDetailRow('Categoría', result.categoryName),
+                _buildDetailRow('Participante', result.participantName),
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
             child: const Text('Cerrar'),
           ),
-          if (result.status == ValidationStatus.valid)
+          if (result.ticketStatus == 'valid')
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 // TODO: Permitir validar desde el historial
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
+                  SnackBar(
+                    content: const Text(
                       'Funcionalidad de validación desde historial pendiente',
                     ),
                     backgroundColor: AppColors.info,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.success,
                 foregroundColor: AppColors.white,
+                elevation: 2,
+                shadowColor: AppColors.shadow,
               ),
               child: const Text('Validar'),
             ),
@@ -330,35 +418,99 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  String _getStatusDisplayName(String status) {
+    switch (status) {
+      case 'valid':
+        return 'Válido';
+      case 'invalid':
+        return 'Inválido';
+      case 'used':
+        return 'Usado';
+      case 'expired':
+        return 'Expirado';
+      case 'notFound':
+        return 'No encontrado';
+      default:
+        return 'Desconocido';
+    }
   }
 
   void _showClearHistoryDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Limpiar Historial'),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.delete_sweep,
+                color: AppColors.error,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Limpiar Historial',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
         content: const Text(
-          '¿Estás seguro de que quieres eliminar todo el historial de escaneos?',
+          '¿Estás seguro de que quieres eliminar todo el historial de escaneos? Esta acción no se puede deshacer.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               // TODO: Implementar limpieza del historial
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Historial limpiado'),
+                SnackBar(
+                  content: const Text(
+                    'Historial limpiado',
+                    style: TextStyle(color: AppColors.white),
+                  ),
                   backgroundColor: AppColors.success,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.white,
+              elevation: 2,
+              shadowColor: AppColors.shadow,
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -366,32 +518,36 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
-  IconData _getStatusIcon(ValidationStatus status) {
+  IconData _getStatusIcon(String status) {
     switch (status) {
-      case ValidationStatus.valid:
+      case 'valid':
         return Icons.check_circle;
-      case ValidationStatus.invalid:
+      case 'invalid':
         return Icons.cancel;
-      case ValidationStatus.used:
+      case 'used':
         return Icons.check_circle_outline;
-      case ValidationStatus.expired:
+      case 'expired':
         return Icons.access_time;
-      case ValidationStatus.notFound:
+      case 'notFound':
         return Icons.search_off;
+      default:
+        return Icons.help_outline;
     }
   }
 
-  Color _getStatusColor(ValidationStatus status) {
+  Color _getStatusColor(String status) {
     switch (status) {
-      case ValidationStatus.valid:
+      case 'valid':
         return AppColors.success;
-      case ValidationStatus.invalid:
+      case 'invalid':
         return AppColors.error;
-      case ValidationStatus.used:
+      case 'used':
         return AppColors.warning;
-      case ValidationStatus.expired:
+      case 'expired':
         return AppColors.error;
-      case ValidationStatus.notFound:
+      case 'notFound':
+        return AppColors.grey;
+      default:
         return AppColors.grey;
     }
   }

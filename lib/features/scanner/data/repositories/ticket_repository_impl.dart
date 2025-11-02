@@ -40,16 +40,13 @@ class TicketRepositoryImpl implements TicketRepository {
 
   ValidationResult _mapToEntity(dynamic model) {
     return ValidationResult(
-      isValid: model.isValid,
-      message: model.message,
-      validationCode: model.validationCode,
-      status: ValidationStatusExtension.fromString(model.status),
       eventName: model.eventName,
-      ticketName: model.ticketName,
       participantName: model.participantName,
-      participantEmail: model.participantEmail,
-      validatedAt: model.validatedAt,
-      validatedBy: model.validatedBy,
+      participantDocument: model.participantDocument ?? model.participantRut,
+      documentType:
+          model.documentType ?? 'rut', // Default a RUT si no está especificado
+      ticketStatus: model.ticketStatus,
+      categoryName: model.categoryName,
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-import 'package:tocke_validator/core/constants/app_constants.dart';
+import '../../../../core/constants/app_constants.dart';
 
 abstract class EventRemoteDataSource {
   // El data source ahora puede ser más simple y enfocado en operaciones específicas de datos

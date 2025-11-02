@@ -11,7 +11,8 @@ ValidationResultModel _$ValidationResultModelFromJson(
     ValidationResultModel(
       eventName: json['eventName'] as String,
       participantName: json['participantName'] as String,
-      participantRut: json['participantRut'] as String,
+      participantDocument: json['participantDocument'] as String,
+      documentType: json['documentType'] as String,
       ticketStatus: json['ticketStatus'] as String,
       categoryName: json['categoryName'] as String,
     );
@@ -21,7 +22,8 @@ Map<String, dynamic> _$ValidationResultModelToJson(
     <String, dynamic>{
       'eventName': instance.eventName,
       'participantName': instance.participantName,
-      'participantRut': instance.participantRut,
+      'participantDocument': instance.participantDocument,
+      'documentType': instance.documentType,
       'ticketStatus': instance.ticketStatus,
       'categoryName': instance.categoryName,
     };

@@ -54,11 +54,19 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       result.fold(
         (failure) {
           AppLogger.error('Error consultando estado: ${failure.toString()}');
-          emit(ScannerError('Error consultando ticket: ${failure.toString()}'));
+          // Si el error es "Ticket no encontrado", emitir estado específico
+          if (failure.toString().contains('Ticket no encontrado') ||
+              failure.toString().contains('no encontrado')) {
+            emit(TicketNotFound(event.validationCode));
+          } else {
+            emit(
+              ScannerError('Error consultando ticket: ${failure.toString()}'),
+            );
+          }
         },
         (validationResult) {
           AppLogger.info(
-            'Estado del ticket consultado: ${validationResult.status}',
+            'Estado del ticket consultado: ${validationResult.ticketStatus}',
           );
           emit(TicketStatusLoaded(validationResult));
         },
@@ -84,11 +92,17 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       result.fold(
         (failure) {
           AppLogger.error('Error validando ticket: ${failure.toString()}');
-          emit(ScannerError('Error validando ticket: ${failure.toString()}'));
+          // Si el error es "Ticket no encontrado", emitir estado específico
+          if (failure.toString().contains('Ticket no encontrado') ||
+              failure.toString().contains('no encontrado')) {
+            emit(TicketNotFound(event.validationCode));
+          } else {
+            emit(ScannerError('Error validando ticket: ${failure.toString()}'));
+          }
         },
         (validationResult) {
           AppLogger.info(
-            'Ticket validado exitosamente: ${validationResult.status}',
+            'Ticket validado exitosamente: ${validationResult.ticketStatus}',
           );
           emit(ValidationSuccess(validationResult));
         },

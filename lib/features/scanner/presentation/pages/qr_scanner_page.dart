@@ -12,7 +12,6 @@ import '../../domain/usecases/validate_ticket_qr.dart';
 import '../bloc/scanner_bloc.dart';
 import '../bloc/scanner_event.dart';
 import '../bloc/scanner_state.dart';
-import '../widgets/validation_result_dialog.dart';
 
 class QRScannerPage extends StatelessWidget {
   const QRScannerPage({super.key});
@@ -182,6 +181,8 @@ class _QRScannerViewState extends State<QRScannerView> {
             _showValidationDialog(context, state.result);
           } else if (state is ValidationSuccess) {
             _showSuccessDialog(context, state.result);
+          } else if (state is TicketNotFound) {
+            _showTicketNotFoundDialog(context, state.validationCode);
           } else if (state is ScannerError) {
             _showErrorDialog(context, state.message);
           }
@@ -369,18 +370,47 @@ class _QRScannerViewState extends State<QRScannerView> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ValidationResultDialog(
-        result: result,
-        onConfirm: () {
-          Navigator.of(context).pop();
-          context.read<ScannerBloc>().add(
-            ConfirmValidationEvent(result.validationCode),
-          );
-        },
-        onCancel: () {
-          Navigator.of(context).pop();
-          _resetScanning();
-        },
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Información del Ticket'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Evento: ${result.eventName}'),
+            const SizedBox(height: 8),
+            Text('Participante: ${result.participantName}'),
+            const SizedBox(height: 8),
+            Text('RUT: ${result.participantRut}'),
+            const SizedBox(height: 8),
+            Text('Categoría: ${result.categoryName}'),
+            const SizedBox(height: 8),
+            Text('Estado: ${result.ticketStatus}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _resetScanning();
+            },
+            child: const Text('Cerrar'),
+          ),
+          if (result.ticketStatus == 'not_validated')
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Aquí podrías agregar lógica para validar el ticket
+                _resetScanning();
+              },
+              child: const Text('Validar'),
+            ),
+        ],
       ),
     );
   }
@@ -403,19 +433,15 @@ class _QRScannerViewState extends State<QRScannerView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('El ticket ha sido validado correctamente.'),
-            if (result.participantName != null) ...[
-              const SizedBox(height: 16),
-              Text('Participante: ${result.participantName}'),
-            ],
-            if (result.eventName != null) ...[
-              const SizedBox(height: 8),
-              Text('Evento: ${result.eventName}'),
-            ],
-            if (result.ticketName != null) ...[
-              const SizedBox(height: 8),
-              Text('Tipo: ${result.ticketName}'),
-            ],
+            const Text('El ticket ha sido validado correctamente.'),
+            const SizedBox(height: 16),
+            Text('Participante: ${result.participantName}'),
+            const SizedBox(height: 8),
+            Text('Evento: ${result.eventName}'),
+            const SizedBox(height: 8),
+            Text('Categoría: ${result.categoryName}'),
+            const SizedBox(height: 8),
+            Text('RUT: ${result.participantRut}'),
           ],
         ),
         actions: [
@@ -425,6 +451,47 @@ class _QRScannerViewState extends State<QRScannerView> {
               _resetScanning();
             },
             child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTicketNotFoundDialog(BuildContext context, String validationCode) {
+    _playSound(AppConstants.scanErrorSound);
+    _vibrate();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.search_off, color: AppColors.warning),
+            SizedBox(width: 8),
+            Text('Ticket No Encontrado'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('El ticket escaneado no existe en el sistema.'),
+            const SizedBox(height: 16),
+            Text('Código: $validationCode'),
+            const SizedBox(height: 16),
+            const Text(
+              'Verifica que el código QR sea válido o contacta al organizador del evento.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _resetScanning();
+            },
+            child: const Text('Reintentar'),
           ),
         ],
       ),

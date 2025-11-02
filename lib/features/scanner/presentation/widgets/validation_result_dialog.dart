@@ -44,7 +44,7 @@ class ValidationResultDialog extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    result.status.displayName,
+                    _getStatusDisplayName(result.ticketStatus),
                     style: TextStyle(
                       color: _getStatusColor(),
                       fontWeight: FontWeight.bold,
@@ -55,36 +55,23 @@ class ValidationResultDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(result.message, style: const TextStyle(fontSize: 16)),
-          if (result.participantName != null) ...[
-            const SizedBox(height: 16),
-            _buildInfoRow('Participante', result.participantName!),
-          ],
-          if (result.participantEmail != null) ...[
-            const SizedBox(height: 8),
-            _buildInfoRow('Email', result.participantEmail!),
-          ],
-          if (result.eventName != null) ...[
-            const SizedBox(height: 8),
-            _buildInfoRow('Evento', result.eventName!),
-          ],
-          if (result.ticketName != null) ...[
-            const SizedBox(height: 8),
-            _buildInfoRow('Tipo de Ticket', result.ticketName!),
-          ],
-          if (result.validatedAt != null) ...[
-            const SizedBox(height: 8),
-            _buildInfoRow('Validado el', _formatDate(result.validatedAt!)),
-          ],
-          if (result.validatedBy != null) ...[
-            const SizedBox(height: 8),
-            _buildInfoRow('Validado por', result.validatedBy!),
-          ],
+          Text(
+            'Estado: ${_getStatusDisplayName(result.ticketStatus)}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Participante', result.participantName),
+          const SizedBox(height: 8),
+          _buildInfoRow('RUT', result.participantRut),
+          const SizedBox(height: 8),
+          _buildInfoRow('Evento', result.eventName),
+          const SizedBox(height: 8),
+          _buildInfoRow('Categoría', result.categoryName),
         ],
       ),
       actions: [
         TextButton(onPressed: onCancel, child: const Text('Cancelar')),
-        if (result.status == ValidationStatus.valid)
+        if (result.ticketStatus == 'valid')
           ElevatedButton(
             onPressed: onConfirm,
             style: ElevatedButton.styleFrom(
@@ -122,37 +109,54 @@ class ValidationResultDialog extends StatelessWidget {
     );
   }
 
+  String _getStatusDisplayName(String status) {
+    switch (status) {
+      case 'valid':
+        return 'Válido';
+      case 'invalid':
+        return 'Inválido';
+      case 'used':
+        return 'Usado';
+      case 'expired':
+        return 'Expirado';
+      case 'notFound':
+        return 'No encontrado';
+      default:
+        return 'Desconocido';
+    }
+  }
+
   IconData _getStatusIcon() {
-    switch (result.status) {
-      case ValidationStatus.valid:
+    switch (result.ticketStatus) {
+      case 'valid':
         return Icons.check_circle;
-      case ValidationStatus.invalid:
+      case 'invalid':
         return Icons.cancel;
-      case ValidationStatus.used:
+      case 'used':
         return Icons.check_circle_outline;
-      case ValidationStatus.expired:
+      case 'expired':
         return Icons.access_time;
-      case ValidationStatus.notFound:
+      case 'notFound':
         return Icons.search_off;
+      default:
+        return Icons.help_outline;
     }
   }
 
   Color _getStatusColor() {
-    switch (result.status) {
-      case ValidationStatus.valid:
+    switch (result.ticketStatus) {
+      case 'valid':
         return AppColors.success;
-      case ValidationStatus.invalid:
+      case 'invalid':
         return AppColors.error;
-      case ValidationStatus.used:
+      case 'used':
         return AppColors.warning;
-      case ValidationStatus.expired:
+      case 'expired':
         return AppColors.error;
-      case ValidationStatus.notFound:
+      case 'notFound':
+        return AppColors.grey;
+      default:
         return AppColors.grey;
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:tocke_validator/main.dart';
+import 'package:tocke/main.dart';
 
 void main() {
   testWidgets('App starts with splash screen', (WidgetTester tester) async {
