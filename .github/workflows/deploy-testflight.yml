@@ -58,13 +58,18 @@ jobs:
         # Decodificar perfil de aprovisionamiento
         echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/certificates/provisioning_profile.mobileprovision
         
+        # Verificar que los archivos se decodificaron correctamente
+        ls -la ~/certificates/
+        file ~/certificates/certificate.p12
+        file ~/certificates/provisioning_profile.mobileprovision
+        
         # Crear keychain temporal
-        security create-keychain -p "" build.keychain
+        security create-keychain -p "tempPassword" build.keychain
         security default-keychain -s build.keychain
-        security unlock-keychain -p "" build.keychain
+        security unlock-keychain -p "tempPassword" build.keychain
         security set-keychain-settings -t 3600 -u build.keychain
         
-        # ⬇️ CORRECCIÓN: Importar certificado con flags correctos
+        # Importar certificado con flags correctos
         security import ~/certificates/certificate.p12 \
         -k build.keychain \
         -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" \
@@ -72,26 +77,44 @@ jobs:
         -T /usr/bin/security \
         -A
         
-        # ⬇️ Configurar keychain partition list (importante para macOS moderno)
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+        # Configurar keychain partition list (importante para macOS moderno)
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "tempPassword" build.keychain
         
         # Listar certificados para verificar
+        echo "=== Certificados disponibles ==="
         security find-identity -v -p codesigning build.keychain
         
         # Instalar perfil de aprovisionamiento
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
         cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
         
+        # Obtener información del perfil de aprovisionamiento
+        echo "=== Información del perfil de aprovisionamiento ==="
+        security cms -D -i ~/certificates/provisioning_profile.mobileprovision | head -n 50
+        
         # Obtener UUID del perfil y renombrarlo
         UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
+        echo "UUID del perfil: $UUID"
         cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
         
         # Verificar instalación
+        echo "=== Perfiles de aprovisionamiento instalados ==="
         ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+        # Verificar que el bundle identifier coincida
+        echo "=== Verificando bundle identifier en el perfil ==="
+        security cms -D -i ~/certificates/provisioning_profile.mobileprovision | grep -A5 -B5 "cl.tocketicket.staffscanner" || echo "Bundle identifier no encontrado en el perfil"
         
     - name: Build iOS for Production
       run: |
-        flutter build ios --release
+        # Verificar configuración antes del build
+        echo "=== Verificando configuración del proyecto ==="
+        cd ios
+        xcodebuild -showBuildSettings -workspace Runner.xcworkspace -scheme Runner -configuration Release | grep -E "(PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY)"
+        
+        echo "=== Iniciando build de Flutter ==="
+        cd ..
+        flutter build ios --release --verbose
         
     - name: Create IPA
       run: |
@@ -149,3 +172,4 @@ jobs:
         rm -rf ~/certificates
         rm -rf ~/private_keys
         rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/provisioning_profile.mobileprovision
+        rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision || true
