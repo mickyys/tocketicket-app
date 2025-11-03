@@ -1,0 +1,8 @@
+# Archivo de propiedades para el keystore de Android
+# Este archivo debe ser creado automáticamente por GitHub Actions
+# No incluir este archivo en el control de versiones
+
+storePassword=your_store_password
+keyPassword=your_key_password
+keyAlias=your_key_alias
+storeFile=keystore.jks

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/storage/database_helper.dart';
@@ -13,6 +14,10 @@ import 'features/events/presentation/pages/organizer_events_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configurar entorno
+  AppConfig.setEnvironment();
+  AppConfig.printConfig();
 
   await Hive.initFlutter();
   await DatabaseHelper.instance.database;

@@ -1,0 +1,133 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build for'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - prod
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    strategy:
+      matrix:
+        environment: [dev, prod]
+        exclude:
+          # En PRs solo compilamos para dev
+          - environment: ${{ github.event_name == 'pull_request' && 'prod' || 'never' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Run Flutter analyzer
+      run: flutter analyze
+      
+    - name: Run Flutter tests
+      run: flutter test
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.0'
+        
+    - name: Install CocoaPods
+      run: |
+        cd ios
+        pod install
+        
+    - name: Setup iOS signing (Production only)
+      if: matrix.environment == 'prod'
+      run: |
+        # Crear directorio temporal para certificados
+        mkdir -p ~/certificates
+        
+        # Decodificar y instalar certificado
+        echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 --decode > ~/certificates/certificate.p12
+        
+        # Decodificar perfil de aprovisionamiento
+        echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/certificates/provisioning_profile.mobileprovision
+        
+        # Crear keychain temporal
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings -t 3600 -u build.keychain
+        
+        # Importar certificado
+        security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+        
+        # Instalar perfil de aprovisionamiento
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+    - name: Build iOS (Development)
+      if: matrix.environment == 'dev'
+      run: |
+        flutter build ios --debug --no-codesign --flavor dev --dart-define=ENVIRONMENT=dev
+        
+    - name: Build iOS (Production)
+      if: matrix.environment == 'prod'
+      run: |
+        flutter build ios --release --flavor prod --dart-define=ENVIRONMENT=prod
+        
+    - name: Create IPA (Production)
+      if: matrix.environment == 'prod'
+      run: |
+        cd ios
+        xcodebuild -workspace Runner.xcworkspace \
+                   -scheme Runner \
+                   -configuration Release-prod \
+                   -destination generic/platform=iOS \
+                   -archivePath build/Runner.xcarchive \
+                   archive
+                   
+        xcodebuild -exportArchive \
+                   -archivePath build/Runner.xcarchive \
+                   -exportPath build \
+                   -exportOptionsPlist Runner/ExportOptions.plist
+                   
+    - name: Upload iOS build artifact (Development)
+      if: matrix.environment == 'dev'
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-ios-dev-app
+        path: build/ios/iphoneos/Runner.app
+        retention-days: 30
+        
+    - name: Upload IPA artifact (Production)
+      if: matrix.environment == 'prod'
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-ios-prod-ipa
+        path: ios/build/*.ipa
+        retention-days: 90
+        
+    - name: Clean up certificates
+      if: always() && matrix.environment == 'prod'
+      run: |
+        security delete-keychain build.keychain
+        rm -rf ~/certificates
+        rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/provisioning_profile.mobileprovision

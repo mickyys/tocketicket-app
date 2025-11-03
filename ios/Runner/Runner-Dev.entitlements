@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Groups -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.cl.tocketicket.staffscanner.dev</string>
+	</array>
+	
+	<!-- Keychain Sharing -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>ZP8L46Q7JJ.cl.tocketicket.staffscanner.dev</string>
+	</array>
+	
+	<!-- Associated Domains -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:dev.tocketicket.cl</string>
+		<string>applinks:api-dev.tocketicket.cl</string>
+	</array>
+	
+	<!-- Background App Refresh -->
+	<key>com.apple.developer.background-modes</key>
+	<array>
+		<string>background-fetch</string>
+		<string>background-processing</string>
+	</array>
+	
+	<!-- Data Protection -->
+	<key>com.apple.developer.default-data-protection</key>
+	<string>NSFileProtectionComplete</string>
+	
+	<!-- Push Notifications -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
+	
+	<!-- Sign in with Apple (opcional) -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+</dict>
+</plist>
