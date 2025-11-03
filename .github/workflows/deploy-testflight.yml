@@ -63,13 +63,25 @@ jobs:
         security unlock-keychain -p "" build.keychain
         security set-keychain-settings -t 3600 -u build.keychain
         
-        # Importar certificado
-        security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
-        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+        # ⬇️ CORRECCIÓN AQUÍ - Importar certificado sin -T flag
+        security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -A
+        
+        # ⬇️ Configurar keychain partition list (importante para macOS moderno)
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+        
+        # Listar certificados para verificar
+        security find-identity -v -p codesigning build.keychain
         
         # Instalar perfil de aprovisionamiento
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
         cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+        # Obtener UUID del perfil y renombrarlo
+        UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
+        cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+        
+        # Verificar instalación
+        ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
         
     - name: Build iOS for Production
       run: |
