@@ -105,6 +105,33 @@ jobs:
         echo "=== Verificando bundle identifier en el perfil ==="
         security cms -D -i ~/certificates/provisioning_profile.mobileprovision | grep -A5 -B5 "cl.tocketicket.staffscanner" || echo "Bundle identifier no encontrado en el perfil"
         
+        # Obtener identidad de distribución del certificado
+        SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "iPhone Distribution" | head -n 1 | cut -d '"' -f 2)
+        if [ -z "$SIGNING_IDENTITY" ]; then
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Apple Distribution" | head -n 1 | cut -d '"' -f 2)
+        fi
+        echo "Identidad de firma encontrada: $SIGNING_IDENTITY"
+        
+        # Exportar para uso en pasos posteriores
+        echo "SIGNING_IDENTITY=$SIGNING_IDENTITY" >> $GITHUB_ENV
+        echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+        
+    - name: Configure Xcode project for signing
+      run: |
+        cd ios
+        
+        # Configurar la identidad de firma y perfil de aprovisionamiento específicamente para Release
+        echo "=== Configurando identidades de firma ==="
+        
+        # Usar xcodebuild para configurar las identidades
+        xcodebuild -workspace Runner.xcworkspace \
+                   -scheme Runner \
+                   -configuration Release \
+                   CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+                   PROVISIONING_PROFILE_SPECIFIER="Staff Scanner Production" \
+                   DEVELOPMENT_TEAM="ZP8L46Q7JJ" \
+                   -showBuildSettings | grep -E "(CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM)"
+        
     - name: Build iOS for Production
       run: |
         # Verificar configuración antes del build
@@ -114,18 +141,28 @@ jobs:
         
         echo "=== Iniciando build de Flutter ==="
         cd ..
-        flutter build ios --release --verbose
+        
+        # Build Flutter con configuración específica de firma
+        flutter build ios --release \
+                          --verbose \
+                          --dart-define=FLUTTER_WEB_AUTO_DETECT=true
         
     - name: Create IPA
       run: |
         cd ios
+        
+        echo "=== Creando archivo con configuración específica ==="
         xcodebuild -workspace Runner.xcworkspace \
                    -scheme Runner \
                    -configuration Release \
                    -destination generic/platform=iOS \
                    -archivePath build/Runner.xcarchive \
+                   CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+                   PROVISIONING_PROFILE_SPECIFIER="Staff Scanner Production" \
+                   DEVELOPMENT_TEAM="ZP8L46Q7JJ" \
                    archive
                    
+        echo "=== Exportando archivo IPA ==="
         xcodebuild -exportArchive \
                    -archivePath build/Runner.xcarchive \
                    -exportPath build \
