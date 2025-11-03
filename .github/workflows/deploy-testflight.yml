@@ -92,10 +92,19 @@ jobs:
         echo "=== Información del perfil de aprovisionamiento ==="
         security cms -D -i ~/certificates/provisioning_profile.mobileprovision | head -n 50
         
-        # Obtener UUID del perfil y renombrarlo
+        # Obtener UUID y nombre del perfil
         UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
+        PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
         echo "UUID del perfil: $UUID"
+        echo "Nombre del perfil: $PROFILE_NAME"
+        
+        # Instalar con UUID
         cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+        
+        # También copiar con el nombre para compatibilidad
+        if [ ! -z "$PROFILE_NAME" ]; then
+          cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_NAME.mobileprovision"
+        fi
         
         # Verificar instalación
         echo "=== Perfiles de aprovisionamiento instalados ==="
@@ -103,7 +112,11 @@ jobs:
         
         # Verificar que el bundle identifier coincida
         echo "=== Verificando bundle identifier en el perfil ==="
-        security cms -D -i ~/certificates/provisioning_profile.mobileprovision | grep -A5 -B5 "cl.tocketicket.staffscanner" || echo "Bundle identifier no encontrado en el perfil"
+        security cms -D -i ~/certificates/provisioning_profile.mobileprovision | grep -A10 -B5 "cl.tocketicket.staffscanner" || echo "Bundle identifier no encontrado en el perfil"
+        
+        # Verificar información completa del perfil
+        echo "=== Información completa del perfil ==="
+        security cms -D -i ~/certificates/provisioning_profile.mobileprovision | grep -E "(Name|UUID|TeamIdentifier|AppIDName)" || true
         
         # Obtener identidad de distribución del certificado
         SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "iPhone Distribution" | head -n 1 | cut -d '"' -f 2)
@@ -115,6 +128,7 @@ jobs:
         # Exportar para uso en pasos posteriores
         echo "SIGNING_IDENTITY=$SIGNING_IDENTITY" >> $GITHUB_ENV
         echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+        echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
         
     - name: Configure Xcode project for signing
       run: |
@@ -123,6 +137,23 @@ jobs:
         # Verificar que los perfiles están instalados correctamente
         echo "=== Verificando configuración de perfiles ==="
         ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+        # Actualizar ExportOptions.plist con el nombre real del perfil
+        if [ ! -z "$PROVISIONING_PROFILE_NAME" ]; then
+          echo "=== Actualizando ExportOptions.plist con el nombre real del perfil ==="
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:cl.tocketicket.staffscanner '$PROVISIONING_PROFILE_NAME'" Runner/ExportOptions.plist
+          echo "ExportOptions.plist actualizado con perfil: $PROVISIONING_PROFILE_NAME"
+          
+          # También actualizar el project.pbxproj para usar el UUID en lugar del nombre
+          echo "=== Actualizando project.pbxproj con UUID del perfil ==="
+          sed -i.bak "s/PROVISIONING_PROFILE_SPECIFIER = \"Staff Scanner Production\"/PROVISIONING_PROFILE_SPECIFIER = $UUID/g" Runner.xcodeproj/project.pbxproj
+          sed -i.bak "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = StaffScanner_AppStore/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = $UUID/g" Runner.xcodeproj/project.pbxproj
+          echo "project.pbxproj actualizado con UUID: $UUID"
+        fi
+        
+        # Mostrar contenido actualizado de ExportOptions.plist
+        echo "=== Contenido de ExportOptions.plist ==="
+        cat Runner/ExportOptions.plist
         
         # Verificar configuración del proyecto
         echo "=== Configuración actual del proyecto ==="

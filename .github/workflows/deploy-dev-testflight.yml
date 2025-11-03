@@ -65,12 +65,36 @@ jobs:
         security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
         security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
         
+        # Obtener información del perfil de aprovisionamiento
+        UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
+        PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin <<< $(security cms -D -i ~/certificates/provisioning_profile.mobileprovision))
+        echo "UUID del perfil: $UUID"
+        echo "Nombre del perfil: $PROFILE_NAME"
+        
         # Instalar perfil de aprovisionamiento
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-        cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+        
+        # También copiar con el nombre para compatibilidad
+        if [ ! -z "$PROFILE_NAME" ]; then
+          cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_NAME.mobileprovision"
+        fi
         
     - name: Build iOS for Development
       run: |
+        cd ios
+        
+        # Configurar proyecto dinámicamente con UUID del perfil
+        if [ ! -z "$UUID" ] && [ ! -z "$PROFILE_NAME" ]; then
+          echo "=== Configurando proyecto con UUID del perfil ==="
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:cl.tocketicket.staffscanner '$PROFILE_NAME'" Runner/ExportOptions.plist || true
+          
+          # Actualizar project.pbxproj con UUID
+          sed -i.bak "s/PROVISIONING_PROFILE_SPECIFIER = \"Staff Scanner Production\"/PROVISIONING_PROFILE_SPECIFIER = $UUID/g" Runner.xcodeproj/project.pbxproj || true
+          sed -i.bak "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = StaffScanner_AppStore/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = $UUID/g" Runner.xcodeproj/project.pbxproj || true
+        fi
+        
+        cd ..
         flutter build ios --release --flavor dev --dart-define=ENVIRONMENT=dev
         
     - name: Create IPA (Development)
