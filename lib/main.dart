@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'core/services/alice_service.dart';
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
@@ -9,6 +10,7 @@ import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
 import 'core/di/dependency_injection.dart';
+import 'core/utils/debugger/alice_button.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/events/presentation/pages/organizer_events_page.dart';
 
@@ -45,15 +47,18 @@ class TocketValidatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiRepositoryProvider(
-      providers: DependencyInjection.repositoryProviders,
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const SplashScreen(),
+    return AliceButton(
+      child: MultiRepositoryProvider(
+        providers: DependencyInjection.repositoryProviders,
+        child: MaterialApp(
+          navigatorKey: AliceService.alice.getNavigatorKey(),
+          title: AppConstants.appName,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system,
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

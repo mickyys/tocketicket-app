@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+import '../services/alice_http_client.dart';
 import '../services/event_service.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
@@ -15,7 +16,7 @@ import '../storage/database_helper.dart';
 class DependencyInjection {
   static List<RepositoryProvider> get repositoryProviders => [
     // HTTP Client
-    RepositoryProvider<http.Client>(create: (_) => http.Client()),
+    RepositoryProvider<http.Client>(create: (_) => AliceHttpClient(http.Client())),
 
     // Database Helper
     RepositoryProvider<DatabaseHelper>(create: (_) => DatabaseHelper.instance),
