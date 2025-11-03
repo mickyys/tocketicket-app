@@ -1,0 +1,108 @@
+name: Build Android
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build for'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - prod
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [dev, prod]
+        exclude:
+          # En PRs solo compilamos para dev
+          - environment: ${{ github.event_name == 'pull_request' && 'prod' || 'never' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Run Flutter analyzer
+      run: flutter analyze
+      
+    - name: Run Flutter tests
+      run: flutter test
+      
+    - name: Setup Android signing (Production only)
+      if: matrix.environment == 'prod'
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+        echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/key.properties
+        echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+        echo "storeFile=keystore.jks" >> android/key.properties
+        
+    - name: Build Android APK (Development)
+      if: matrix.environment == 'dev'
+      run: |
+        flutter build apk --debug --flavor dev --dart-define=ENVIRONMENT=dev
+        
+    - name: Build Android APK (Production)
+      if: matrix.environment == 'prod'
+      run: |
+        flutter build apk --release --flavor prod --dart-define=ENVIRONMENT=prod
+        
+    - name: Build Android AAB (Production)
+      if: matrix.environment == 'prod'
+      run: |
+        flutter build appbundle --release --flavor prod --dart-define=ENVIRONMENT=prod
+        
+    - name: Upload APK artifact (Development)
+      if: matrix.environment == 'dev'
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-android-dev-apk
+        path: build/app/outputs/flutter-apk/app-dev-debug.apk
+        retention-days: 30
+        
+    - name: Upload APK artifact (Production)
+      if: matrix.environment == 'prod'
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-android-prod-apk
+        path: build/app/outputs/flutter-apk/app-prod-release.apk
+        retention-days: 90
+        
+    - name: Upload AAB artifact (Production)
+      if: matrix.environment == 'prod'
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-android-prod-aab
+        path: build/app/outputs/bundle/prodRelease/app-prod-release.aab
+        retention-days: 90
+        
+    - name: Clean up keystore
+      if: always() && matrix.environment == 'prod'
+      run: |
+        rm -f android/app/keystore.jks
+        rm -f android/key.properties

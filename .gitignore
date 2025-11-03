@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android signing
+android/key.properties
+android/app/keystore.jks
+
+# iOS signing
+ios/Runner/GoogleService-Info.plist
+ios/Runner/ExportOptions-prod.plist
