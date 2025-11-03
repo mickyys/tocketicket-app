@@ -91,7 +91,7 @@ jobs:
         
     - name: Build iOS for Production
       run: |
-        flutter build ios --release --flavor prod --dart-define=ENVIRONMENT=prod
+        flutter build ios --release prod --dart-define=ENVIRONMENT=prod
         
     - name: Create IPA
       run: |
