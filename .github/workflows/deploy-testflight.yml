@@ -120,17 +120,16 @@ jobs:
       run: |
         cd ios
         
-        # Configurar la identidad de firma y perfil de aprovisionamiento específicamente para Release
-        echo "=== Configurando identidades de firma ==="
+        # Verificar que los perfiles están instalados correctamente
+        echo "=== Verificando configuración de perfiles ==="
+        ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
         
-        # Usar xcodebuild para configurar las identidades
+        # Verificar configuración del proyecto
+        echo "=== Configuración actual del proyecto ==="
         xcodebuild -workspace Runner.xcworkspace \
                    -scheme Runner \
                    -configuration Release \
-                   CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-                   PROVISIONING_PROFILE_SPECIFIER="Staff Scanner Production" \
-                   DEVELOPMENT_TEAM="ZP8L46Q7JJ" \
-                   -showBuildSettings | grep -E "(CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM)"
+                   -showBuildSettings | grep -E "(CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|DEVELOPMENT_TEAM)"
         
     - name: Build iOS for Production
       run: |
@@ -151,15 +150,12 @@ jobs:
       run: |
         cd ios
         
-        echo "=== Creando archivo con configuración específica ==="
+        echo "=== Creando archivo con configuración del proyecto ==="
         xcodebuild -workspace Runner.xcworkspace \
                    -scheme Runner \
                    -configuration Release \
                    -destination generic/platform=iOS \
                    -archivePath build/Runner.xcarchive \
-                   CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-                   PROVISIONING_PROFILE_SPECIFIER="Staff Scanner Production" \
-                   DEVELOPMENT_TEAM="ZP8L46Q7JJ" \
                    archive
                    
         echo "=== Exportando archivo IPA ==="
