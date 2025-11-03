@@ -91,14 +91,14 @@ jobs:
         
     - name: Build iOS for Production
       run: |
-        flutter build ios --release prod --dart-define=ENVIRONMENT=prod
+        flutter build ios --release
         
     - name: Create IPA
       run: |
         cd ios
         xcodebuild -workspace Runner.xcworkspace \
                    -scheme Runner \
-                   -configuration Release-prod \
+                   -configuration Release \
                    -destination generic/platform=iOS \
                    -archivePath build/Runner.xcarchive \
                    archive
