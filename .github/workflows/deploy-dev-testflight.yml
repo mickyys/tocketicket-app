@@ -1,0 +1,136 @@
+name: Deploy Dev to TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      beta_notes:
+        description: 'Release notes for TestFlight (Development)'
+        required: false
+        default: 'Development build from GitHub Actions'
+        type: string
+  push:
+    branches: [ develop, feature/* ]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+
+jobs:
+  deploy-dev-to-testflight:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: 'latest'  # Usa la última versión stable
+        channel: 'stable'
+        cache: true
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.0'
+        
+    - name: Install CocoaPods
+      run: |
+        cd ios
+        pod install
+        
+    - name: Setup iOS signing
+      run: |
+        # Crear directorio temporal para certificados
+        mkdir -p ~/certificates
+        
+        # Decodificar y instalar certificado
+        echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 --decode > ~/certificates/certificate.p12
+        
+        # Decodificar perfil de aprovisionamiento
+        echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/certificates/provisioning_profile.mobileprovision
+        
+        # Crear keychain temporal
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings -t 3600 -u build.keychain
+        
+        # Importar certificado
+        security import ~/certificates/certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+        
+        # Instalar perfil de aprovisionamiento
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp ~/certificates/provisioning_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+    - name: Build iOS for Development
+      run: |
+        flutter build ios --release --flavor dev --dart-define=ENVIRONMENT=dev
+        
+    - name: Create IPA (Development)
+      run: |
+        cd ios
+        xcodebuild -workspace Runner.xcworkspace \
+                   -scheme Runner \
+                   -configuration Release-dev \
+                   -destination generic/platform=iOS \
+                   -archivePath build/Runner-dev.xcarchive \
+                   archive
+                   
+        xcodebuild -exportArchive \
+                   -archivePath build/Runner-dev.xcarchive \
+                   -exportPath build-dev \
+                   -exportOptionsPlist Runner/ExportOptions.plist
+                   
+    - name: Setup App Store Connect API Key
+      run: |
+        # Crear directorio para API key
+        mkdir -p ~/private_keys
+        
+        # Decodificar y guardar API key
+        echo "${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
+        
+    - name: Upload to TestFlight (Development)
+      run: |
+        # Obtener el nombre del archivo IPA
+        IPA_FILE=$(find ios/build-dev -name "*.ipa" | head -n 1)
+        
+        echo "📱 Uploading development build to TestFlight..."
+        echo "🔍 IPA File: $IPA_FILE"
+        echo "📝 Notes: ${{ github.event.inputs.beta_notes || 'Development build from GitHub Actions' }}"
+        
+        # Subir a TestFlight
+        xcrun altool --upload-app \
+                     --type ios \
+                     --file "$IPA_FILE" \
+                     --apiKey ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
+                     --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
+                     --verbose
+                     
+    - name: Notify success
+      run: |
+        echo "✅ Development build successfully uploaded to TestFlight!"
+        echo "📱 App: Staff Scanner Dev (cl.tocketicket.staffscanner.dev)"
+        echo "🔔 Internal testers will be notified when ready"
+        echo "🔍 Check App Store Connect → TestFlight → iOS → Builds"
+        
+    - name: Upload IPA artifact (backup)
+      uses: actions/upload-artifact@v4
+      with:
+        name: staffscanner-dev-testflight-ipa-${{ github.run_number }}
+        path: ios/build-dev/*.ipa
+        retention-days: 7
+        
+    - name: Clean up
+      if: always()
+      run: |
+        security delete-keychain build.keychain || true
+        rm -rf ~/certificates
+        rm -rf ~/private_keys
+        rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/provisioning_profile.mobileprovision
