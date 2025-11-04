@@ -1,5 +1,5 @@
 import 'package:logger/logger.dart';
-// import '../services/crashlytics_service.dart'; // Comentado temporalmente
+import '../services/crashlytics_service.dart';
 
 class AppLogger {
   static final Logger _logger = Logger(
@@ -44,23 +44,23 @@ class AppLogger {
   static void error(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.e(message, error: error, stackTrace: stackTrace);
 
-    // TODO: Enviar errores a Crashlytics cuando esté habilitado
-    // if (error != null) {
-    //   CrashlyticsService.recordError(error, stackTrace, reason: message);
-    // }
+    // Enviar errores a Crashlytics
+    if (error != null) {
+      CrashlyticsService.recordError(error, stackTrace, reason: message);
+    }
   }
 
   static void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.f(message, error: error, stackTrace: stackTrace);
 
-    // TODO: Enviar errores fatales a Crashlytics cuando esté habilitado
-    // if (error != null) {
-    //   CrashlyticsService.recordError(
-    //     error,
-    //     stackTrace,
-    //     reason: message,
-    //     fatal: true,
-    //   );
-    // }
+    // Enviar errores fatales a Crashlytics
+    if (error != null) {
+      CrashlyticsService.recordError(
+        error,
+        stackTrace,
+        reason: message,
+        fatal: true,
+      );
+    }
   }
 }

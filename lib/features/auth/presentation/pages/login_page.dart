@@ -4,7 +4,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../events/presentation/pages/organizer_events_page.dart';
-// import '../../../../core/services/crashlytics_service.dart';
+import '../../../../core/services/crashlytics_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -72,15 +72,15 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-          // Crashlytics: set user info (comentado temporalmente)
-          // final userData = await AuthService.getUserData();
-          // if (userData != null) {
-          //   await CrashlyticsService.setUserInfo(
-          //     id: userData['id']?.toString(),
-          //     email: userData['email']?.toString(),
-          //     name: userData['name']?.toString(),
-          //   );
-          // }
+          // Crashlytics: set user info
+          final userData = await AuthService.getUserData();
+          if (userData != null) {
+            await CrashlyticsService.setUserInfo(
+              id: userData['id']?.toString(),
+              email: userData['email']?.toString(),
+              name: userData['name']?.toString(),
+            );
+          }
 
           // Navegar a la pantalla de eventos
           Navigator.of(context).pushReplacement(

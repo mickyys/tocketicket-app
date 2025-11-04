@@ -1,6 +1,5 @@
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
-import '../utils/logger.dart';
 
 class CrashlyticsService {
   static final FirebaseCrashlytics _crashlytics = FirebaseCrashlytics.instance;
@@ -19,7 +18,6 @@ class CrashlyticsService {
     bool fatal = false,
   }) async {
     try {
-      AppLogger.error('Error registrado en Crashlytics', exception);
       await _crashlytics.recordError(
         exception,
         stackTrace,
@@ -27,7 +25,8 @@ class CrashlyticsService {
         fatal: fatal,
       );
     } catch (e) {
-      AppLogger.error('Error al registrar en Crashlytics', e);
+      // No usar AppLogger aquí para evitar bucles infinitos
+      print('Error al registrar en Crashlytics: $e');
     }
   }
 
@@ -38,7 +37,7 @@ class CrashlyticsService {
     try {
       await _crashlytics.recordFlutterFatalError(errorDetails);
     } catch (e) {
-      AppLogger.error('Error al registrar Flutter error en Crashlytics', e);
+      print('Error al registrar Flutter error en Crashlytics: $e');
     }
   }
 
@@ -47,7 +46,7 @@ class CrashlyticsService {
     try {
       await _crashlytics.setUserIdentifier(userId);
     } catch (e) {
-      AppLogger.error('Error al establecer userId en Crashlytics', e);
+      print('Error al establecer userId en Crashlytics: $e');
     }
   }
 
@@ -56,7 +55,7 @@ class CrashlyticsService {
     try {
       await _crashlytics.setCustomKey(key, value);
     } catch (e) {
-      AppLogger.error('Error al establecer custom key en Crashlytics', e);
+      print('Error al establecer custom key en Crashlytics: $e');
     }
   }
 
@@ -65,7 +64,7 @@ class CrashlyticsService {
     try {
       await _crashlytics.log(message);
     } catch (e) {
-      AppLogger.error('Error al registrar log en Crashlytics', e);
+      print('Error al registrar log en Crashlytics: $e');
     }
   }
 
@@ -80,7 +79,7 @@ class CrashlyticsService {
       if (email != null) await setCustomKey('user_email', email);
       if (name != null) await setCustomKey('user_name', name);
     } catch (e) {
-      AppLogger.error('Error al establecer user info en Crashlytics', e);
+      print('Error al establecer user info en Crashlytics: $e');
     }
   }
 
@@ -95,7 +94,7 @@ class CrashlyticsService {
         await setCustomKey('event_${entry.key}', entry.value);
       }
     } catch (e) {
-      AppLogger.error('Error al registrar custom event en Crashlytics', e);
+      print('Error al registrar custom event en Crashlytics: $e');
     }
   }
 

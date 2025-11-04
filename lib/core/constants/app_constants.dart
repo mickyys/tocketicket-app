@@ -12,8 +12,7 @@ class AppConstants {
   //
   // Para encontrar tu IP local, ejecuta en terminal: ifconfig | grep "inet "
 
-  static const String _localNetworkUrl =
-      'https://be54ad5d1e18.ngrok-free.app'; // Tu IP local actual para iOS y dispositivos físicos
+  static const String _localNetworkUrl = 'https://api.dev.tocketicket.com';
   static const String _productionUrl = 'https://api.tocketicket.com';
 
   // URL base actual - configurada para iOS y dispositivos físicos
