@@ -1,0 +1,108 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
+import '../utils/logger.dart';
+
+class CrashlyticsService {
+  static final FirebaseCrashlytics _crashlytics = FirebaseCrashlytics.instance;
+
+  /// Inicializa Crashlytics
+  static Future<void> initialize() async {
+    // En modo debug, podemos deshabilitar crashlytics
+    await _crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+  }
+
+  /// Registra un error fatal
+  static Future<void> recordError(
+    dynamic exception,
+    StackTrace? stackTrace, {
+    String? reason,
+    bool fatal = false,
+  }) async {
+    try {
+      AppLogger.error('Error registrado en Crashlytics', exception);
+      await _crashlytics.recordError(
+        exception,
+        stackTrace,
+        reason: reason,
+        fatal: fatal,
+      );
+    } catch (e) {
+      AppLogger.error('Error al registrar en Crashlytics', e);
+    }
+  }
+
+  /// Registra un error de Flutter
+  static Future<void> recordFlutterError(
+    FlutterErrorDetails errorDetails,
+  ) async {
+    try {
+      await _crashlytics.recordFlutterFatalError(errorDetails);
+    } catch (e) {
+      AppLogger.error('Error al registrar Flutter error en Crashlytics', e);
+    }
+  }
+
+  /// Establece un ID de usuario personalizado
+  static Future<void> setUserId(String userId) async {
+    try {
+      await _crashlytics.setUserIdentifier(userId);
+    } catch (e) {
+      AppLogger.error('Error al establecer userId en Crashlytics', e);
+    }
+  }
+
+  /// Establece atributos personalizados
+  static Future<void> setCustomKey(String key, Object value) async {
+    try {
+      await _crashlytics.setCustomKey(key, value);
+    } catch (e) {
+      AppLogger.error('Error al establecer custom key en Crashlytics', e);
+    }
+  }
+
+  /// Registra un log personalizado
+  static Future<void> log(String message) async {
+    try {
+      await _crashlytics.log(message);
+    } catch (e) {
+      AppLogger.error('Error al registrar log en Crashlytics', e);
+    }
+  }
+
+  /// Establece información del usuario
+  static Future<void> setUserInfo({
+    String? email,
+    String? name,
+    String? id,
+  }) async {
+    try {
+      if (id != null) await setUserId(id);
+      if (email != null) await setCustomKey('user_email', email);
+      if (name != null) await setCustomKey('user_name', name);
+    } catch (e) {
+      AppLogger.error('Error al establecer user info en Crashlytics', e);
+    }
+  }
+
+  /// Registra un evento personalizado
+  static Future<void> recordCustomEvent(
+    String event,
+    Map<String, dynamic> parameters,
+  ) async {
+    try {
+      await log('Custom Event: $event');
+      for (final entry in parameters.entries) {
+        await setCustomKey('event_${entry.key}', entry.value);
+      }
+    } catch (e) {
+      AppLogger.error('Error al registrar custom event en Crashlytics', e);
+    }
+  }
+
+  /// Fuerza un crash para testing (solo en debug)
+  static void testCrash() {
+    if (kDebugMode) {
+      _crashlytics.crash();
+    }
+  }
+}

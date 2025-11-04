@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import '../services/alice_http_client.dart';
+import 'package:flutter/foundation.dart';
+import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
@@ -16,7 +17,23 @@ import '../storage/database_helper.dart';
 class DependencyInjection {
   static List<RepositoryProvider> get repositoryProviders => [
     // HTTP Client
-    RepositoryProvider<http.Client>(create: (_) => AliceHttpClient(http.Client())),
+    RepositoryProvider<http.Client>(
+      create: (_) {
+        // Usar cliente HTTP estándar
+        final client = http.Client();
+
+        // Configurar AuthService con el cliente
+        AuthService.setHttpClient(client);
+
+        if (kDebugMode) {
+          debugPrint(
+            '🚀 DI: Cliente HTTP estándar configurado para todos los servicios',
+          );
+        }
+
+        return client;
+      },
+    ),
 
     // Database Helper
     RepositoryProvider<DatabaseHelper>(create: (_) => DatabaseHelper.instance),

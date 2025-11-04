@@ -7,6 +7,25 @@ import '../utils/logger.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
+  static http.Client? _httpClient;
+
+  // Método para configurar el cliente HTTP (se llamará desde DI)
+  static void setHttpClient(http.Client client) {
+    _httpClient = client;
+    AppLogger.debug('🔧 HTTP: AuthService configurado con cliente HTTP');
+  }
+
+  // Getter para obtener el cliente HTTP
+  static http.Client get _client {
+    if (_httpClient == null) {
+      // Auto-configurar con cliente HTTP básico si no está configurado
+      AppLogger.debug(
+        '🔧 HTTP: Auto-configurando AuthService con cliente HTTP básico',
+      );
+      _httpClient = http.Client();
+    }
+    return _httpClient!;
+  }
 
   static Future<Map<String, dynamic>> login({
     required String email,
@@ -16,7 +35,7 @@ class AuthService {
       AppLogger.info('Intentando login para: $email');
       AppLogger.debug('URL de login: ${AppConstants.loginEndpoint}');
 
-      final response = await http
+      final response = await _client
           .post(
             Uri.parse(AppConstants.loginEndpoint),
             headers: HttpHeaderUtils.baseHeaders,
@@ -25,12 +44,14 @@ class AuthService {
           .timeout(AppConstants.connectTimeout);
 
       final responseData = jsonDecode(response.body);
-      AppLogger.info('Respuesta del servidor: $responseData');
+      AppLogger.info('Respuesta del servidor recibida', {
+        'status_code': response.statusCode,
+        'has_token': responseData['token'] != null,
+        'has_user': responseData['user'] != null,
+      });
 
       if (response.statusCode == 200) {
         AppLogger.info('Login exitoso para: $email');
-
-        AppLogger.info("responseData: $responseData");
 
         // Guardar tokens de forma segura
         if (responseData['token'] != null) {
@@ -58,13 +79,15 @@ class AuthService {
         return {'success': true, 'data': responseData};
       } else {
         AppLogger.error('Error en login: ${response.statusCode}');
+
         return {
           'success': false,
           'error': responseData['message'] ?? 'Error al iniciar sesión',
         };
       }
-    } catch (e) {
-      AppLogger.error('Excepción en login: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción en login', e, stackTrace);
+
       return {
         'success': false,
         'error': 'Error de conexión. Verifica tu internet.',

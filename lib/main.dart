@@ -2,20 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'core/services/alice_service.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+// import 'firebase_options.dart';
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
+// import 'core/services/crashlytics_service.dart';
 import 'core/di/dependency_injection.dart';
-import 'core/utils/debugger/alice_button.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/events/presentation/pages/organizer_events_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // TODO: Inicializar Firebase cuando se resuelvan conflictos de dependencias
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
+
+  // TODO: Inicializar Crashlytics cuando se resuelvan conflictos
+  // await CrashlyticsService.initialize();
+
+  // TODO: Configurar Crashlytics para capturar errores de Flutter
+  // FlutterError.onError = (errorDetails) {
+  //   FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  // };
 
   // Configurar entorno
   AppConfig.setEnvironment();
@@ -39,6 +54,7 @@ void main() async {
   );
 
   AppLogger.init();
+
   runApp(const TocketValidatorApp());
 }
 
@@ -47,18 +63,15 @@ class TocketValidatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AliceButton(
-      child: MultiRepositoryProvider(
-        providers: DependencyInjection.repositoryProviders,
-        child: MaterialApp(
-          navigatorKey: AliceService.alice.getNavigatorKey(),
-          title: AppConstants.appName,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.system,
-          home: const SplashScreen(),
-        ),
+    return MultiRepositoryProvider(
+      providers: DependencyInjection.repositoryProviders,
+      child: MaterialApp(
+        title: AppConstants.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const SplashScreen(),
       ),
     );
   }
@@ -100,42 +113,46 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF6C63FF), Color(0xFF5A52E8)],
-          ),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.qr_code_scanner, size: 120, color: Colors.white),
-            SizedBox(height: 24),
-            Text(
-              'Tocke Validator',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+    return Stack(
+      children: [
+        Scaffold(
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF6C63FF), Color(0xFF5A52E8)],
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Validador de entradas QR',
-              style: TextStyle(fontSize: 16, color: Colors.white70),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 120, color: Colors.white),
+                SizedBox(height: 24),
+                Text(
+                  'Tocke Validator',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Validador de entradas QR',
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
+                ),
+                SizedBox(height: 48),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ],
             ),
-            SizedBox(height: 48),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

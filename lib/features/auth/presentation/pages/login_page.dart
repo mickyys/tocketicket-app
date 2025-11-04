@@ -4,6 +4,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../events/presentation/pages/organizer_events_page.dart';
+// import '../../../../core/services/crashlytics_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -71,6 +72,16 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
+          // Crashlytics: set user info (comentado temporalmente)
+          // final userData = await AuthService.getUserData();
+          // if (userData != null) {
+          //   await CrashlyticsService.setUserInfo(
+          //     id: userData['id']?.toString(),
+          //     email: userData['email']?.toString(),
+          //     name: userData['name']?.toString(),
+          //   );
+          // }
+
           // Navegar a la pantalla de eventos
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -116,40 +127,44 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.padding * 2),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-                _buildLogo(),
-                const SizedBox(height: 40),
-                if (DebugConfig.enableDebugMode) _buildDebugBanner(),
-                if (DebugConfig.enableDebugMode) const SizedBox(height: 16),
-                _buildTitle(),
-                const SizedBox(height: 8),
-                _buildSubtitle(),
-                const SizedBox(height: 40),
-                _buildEmailField(),
-                const SizedBox(height: 20),
-                _buildPasswordField(),
-                const SizedBox(height: 16),
-                _buildRememberMeAndForgotPassword(),
-                const SizedBox(height: 32),
-                _buildLoginButton(),
-                const SizedBox(height: 24),
-                _buildDivider(),
-                const SizedBox(height: 24),
-                _buildFooter(),
-              ],
+    return Stack(
+      children: [
+        Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppConstants.padding * 2),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 40),
+                    _buildLogo(),
+                    const SizedBox(height: 40),
+                    if (DebugConfig.enableDebugMode) _buildDebugBanner(),
+                    if (DebugConfig.enableDebugMode) const SizedBox(height: 16),
+                    _buildTitle(),
+                    const SizedBox(height: 8),
+                    _buildSubtitle(),
+                    const SizedBox(height: 40),
+                    _buildEmailField(),
+                    const SizedBox(height: 20),
+                    _buildPasswordField(),
+                    const SizedBox(height: 16),
+                    _buildRememberMeAndForgotPassword(),
+                    const SizedBox(height: 32),
+                    _buildLoginButton(),
+                    const SizedBox(height: 24),
+                    _buildDivider(),
+                    const SizedBox(height: 24),
+                    _buildFooter(),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
