@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/config/debug_config.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../events/presentation/pages/organizer_events_page.dart';
 import '../../../../core/services/crashlytics_service.dart';
@@ -98,7 +99,15 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Registrar error en Crashlytics
+      await FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Error durante el login',
+        fatal: true,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
