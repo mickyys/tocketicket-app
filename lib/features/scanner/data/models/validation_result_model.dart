@@ -8,19 +8,32 @@ part 'validation_result_model.g.dart';
 class ValidationResultModel extends Equatable {
   final String eventName;
   final String participantName;
+  @JsonKey(name: 'participantDocumentNumber')
   final String participantDocument;
+  @JsonKey(name: 'participantDocumentType')
   final String documentType;
-  @JsonKey(name: 'ticketStatus')
+  final String participantStatus;
+  final int ticketCorrelative;
   final String ticketStatus;
+  final DateTime? validatedAt;
   final String categoryName;
+  final String? ticketName;
+  final DateTime? purchaseDate;
+  final String? validationCode;
 
   const ValidationResultModel({
     required this.eventName,
     required this.participantName,
     required this.participantDocument,
     required this.documentType,
+    required this.participantStatus,
+    required this.ticketCorrelative,
     required this.ticketStatus,
+    this.validatedAt,
     required this.categoryName,
+    this.ticketName,
+    this.purchaseDate,
+    this.validationCode,
   });
 
   // Getter para mantener compatibilidad con código existente
@@ -37,8 +50,14 @@ class ValidationResultModel extends Equatable {
       participantName: participantName,
       participantDocument: participantDocument,
       documentType: documentType,
+      participantStatus: participantStatus,
+      ticketCorrelative: ticketCorrelative,
       ticketStatus: ticketStatus,
+      validatedAt: validatedAt,
       categoryName: categoryName,
+      ticketName: ticketName,
+      purchaseDate: purchaseDate,
+      validationCode: validationCode,
     );
   }
 
@@ -47,16 +66,28 @@ class ValidationResultModel extends Equatable {
     String? participantName,
     String? participantDocument,
     String? documentType,
+    String? participantStatus,
+    int? ticketCorrelative,
     String? ticketStatus,
+    DateTime? validatedAt,
     String? categoryName,
+    String? ticketName,
+    DateTime? purchaseDate,
+    String? validationCode,
   }) {
     return ValidationResultModel(
       eventName: eventName ?? this.eventName,
       participantName: participantName ?? this.participantName,
       participantDocument: participantDocument ?? this.participantDocument,
       documentType: documentType ?? this.documentType,
+      participantStatus: participantStatus ?? this.participantStatus,
+      ticketCorrelative: ticketCorrelative ?? this.ticketCorrelative,
       ticketStatus: ticketStatus ?? this.ticketStatus,
+      validatedAt: validatedAt ?? this.validatedAt,
       categoryName: categoryName ?? this.categoryName,
+      ticketName: ticketName ?? this.ticketName,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
+      validationCode: validationCode ?? this.validationCode,
     );
   }
 
@@ -66,7 +97,13 @@ class ValidationResultModel extends Equatable {
     participantName,
     participantDocument,
     documentType,
+    participantStatus,
+    ticketCorrelative,
     ticketStatus,
+    validatedAt,
     categoryName,
+    ticketName,
+    purchaseDate,
+    validationCode,
   ];
 }

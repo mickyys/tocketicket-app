@@ -2,20 +2,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/logger.dart';
 import '../../domain/usecases/check_ticket_status.dart';
 import '../../domain/usecases/validate_ticket_qr.dart';
+import '../../data/repositories/scan_history_repository.dart';
 import 'scanner_event.dart';
 import 'scanner_state.dart';
 
 class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
   final CheckTicketStatus checkTicketStatus;
   final ValidateTicketQR validateTicketQR;
+  final ScanHistoryRepository scanHistoryRepository;
 
-  ScannerBloc({required this.checkTicketStatus, required this.validateTicketQR})
-    : super(ScannerInitial()) {
+  ScannerBloc({
+    required this.checkTicketStatus,
+    required this.validateTicketQR,
+    required this.scanHistoryRepository,
+  }) : super(ScannerInitial()) {
     on<ScanQRCode>(_onScanQRCode);
     on<CheckTicketStatusEvent>(_onCheckTicketStatus);
     on<ConfirmValidationEvent>(_onConfirmValidation);
     on<ClearResultEvent>(_onClearResult);
     on<ResetScannerEvent>(_onResetScanner);
+    on<GetScanHistoryEvent>(_onGetScanHistory);
+    on<ClearScanHistoryEvent>(_onClearScanHistory);
   }
 
   Future<void> _onScanQRCode(
@@ -64,10 +71,21 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
             );
           }
         },
-        (validationResult) {
+        (validationResult) async {
           AppLogger.info(
             'Estado del ticket consultado: ${validationResult.ticketStatus}',
           );
+
+          // Guardar en el historial
+          try {
+            await scanHistoryRepository.saveScanResult(
+              validationResult,
+              'Scanner App', // Aquí podrías usar el nombre del usuario logueado
+            );
+          } catch (e) {
+            AppLogger.error('Error guardando en historial: $e');
+          }
+
           emit(TicketStatusLoaded(validationResult));
         },
       );
@@ -100,10 +118,21 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
             emit(ScannerError('Error validando ticket: ${failure.toString()}'));
           }
         },
-        (validationResult) {
+        (validationResult) async {
           AppLogger.info(
             'Ticket validado exitosamente: ${validationResult.ticketStatus}',
           );
+
+          // Actualizar en el historial con el estado validado
+          try {
+            await scanHistoryRepository.saveScanResult(
+              validationResult,
+              'Scanner App', // Aquí podrías usar el nombre del usuario logueado
+            );
+          } catch (e) {
+            AppLogger.error('Error actualizando historial: $e');
+          }
+
           emit(ValidationSuccess(validationResult));
         },
       );
@@ -125,6 +154,36 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     Emitter<ScannerState> emit,
   ) async {
     emit(ScannerInitial());
+  }
+
+  Future<void> _onGetScanHistory(
+    GetScanHistoryEvent event,
+    Emitter<ScannerState> emit,
+  ) async {
+    try {
+      AppLogger.info('Obteniendo historial de escaneos');
+      final history = await scanHistoryRepository.getScanHistory();
+      emit(ScanHistoryLoaded(history));
+    } catch (e) {
+      AppLogger.error('Error obteniendo historial: $e');
+      emit(ScannerError('Error obteniendo historial: $e'));
+    }
+  }
+
+  Future<void> _onClearScanHistory(
+    ClearScanHistoryEvent event,
+    Emitter<ScannerState> emit,
+  ) async {
+    try {
+      AppLogger.info('Limpiando historial de escaneos');
+      await scanHistoryRepository.clearHistory();
+      emit(ScanHistoryCleared());
+      // Recargar el historial vacío
+      add(GetScanHistoryEvent());
+    } catch (e) {
+      AppLogger.error('Error limpiando historial: $e');
+      emit(ScannerError('Error limpiando historial: $e'));
+    }
   }
 
   /// Extrae el código de validación del QR escaneado

@@ -42,3 +42,9 @@ class ClearResultEvent extends ScannerEvent {}
 
 /// Evento para reiniciar el scanner
 class ResetScannerEvent extends ScannerEvent {}
+
+/// Evento para obtener el historial de escaneos
+class GetScanHistoryEvent extends ScannerEvent {}
+
+/// Evento para limpiar el historial
+class ClearScanHistoryEvent extends ScannerEvent {}

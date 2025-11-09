@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -9,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../domain/entities/validation_result.dart';
 import '../../domain/usecases/check_ticket_status.dart';
 import '../../domain/usecases/validate_ticket_qr.dart';
+import '../../data/repositories/scan_history_repository.dart';
 import '../bloc/scanner_bloc.dart';
 import '../bloc/scanner_event.dart';
 import '../bloc/scanner_state.dart';
@@ -22,6 +22,7 @@ class QRScannerPage extends StatelessWidget {
       create: (context) => ScannerBloc(
         checkTicketStatus: context.read<CheckTicketStatus>(),
         validateTicketQR: context.read<ValidateTicketQR>(),
+        scanHistoryRepository: ScanHistoryRepository(),
       ),
       child: const QRScannerView(),
     );
@@ -40,6 +41,7 @@ class _QRScannerViewState extends State<QRScannerView> {
   bool _isScanning = true;
   DateTime? _lastScanTime;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _currentValidationCode; // Agregar variable para el código actual
 
   @override
   void initState() {
@@ -55,41 +57,48 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   Future<void> _initializeScanner() async {
-    final permissionStatus = await Permission.camera.request();
-
-    if (permissionStatus.isGranted) {
-      _scannerController = MobileScannerController(
-        detectionSpeed: DetectionSpeed.noDuplicates,
-        facing: CameraFacing.back,
-        torchEnabled: false,
-      );
-      setState(() {});
-    } else {
+    try {
+      _setupScanner();
+      return;
+    } catch (e) {
+      // Error al solicitar permisos
       if (mounted) {
-        _showPermissionDialog();
+        _showPermissionErrorDialog();
       }
     }
   }
 
-  void _showPermissionDialog() {
+  void _setupScanner() {
+    _scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+      torchEnabled: false,
+    );
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _showPermissionErrorDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permiso de Cámara'),
+        title: const Text('Error de Permisos'),
         content: const Text(
-          'Esta aplicación necesita acceso a la cámara para escanear códigos QR.',
+          'Ocurrió un error al solicitar permisos de cámara. '
+          'Por favor, reinicia la aplicación e intenta de nuevo.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: const Text('Cerrar'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              openAppSettings();
+              _initializeScanner(); // Reintentar
             },
-            child: const Text('Configuración'),
+            child: const Text('Reintentar'),
           ),
         ],
       ),
@@ -113,9 +122,7 @@ class _QRScannerViewState extends State<QRScannerView> {
       if (code != null && code.isNotEmpty) {
         _lastScanTime = now;
         _isScanning = false;
-
-        // Reproducir sonido de scan
-        _playSound(AppConstants.scanSuccessSound);
+        _currentValidationCode = code; // Guardar el código actual
 
         // Vibrar
         _vibrate();
@@ -123,16 +130,6 @@ class _QRScannerViewState extends State<QRScannerView> {
         // Procesar el código
         context.read<ScannerBloc>().add(ScanQRCode(code));
       }
-    }
-  }
-
-  Future<void> _playSound(String soundPath) async {
-    try {
-      await _audioPlayer.play(
-        AssetSource(soundPath.replaceFirst('assets/', '')),
-      );
-    } catch (e) {
-      // Ignorar errores de audio
     }
   }
 
@@ -152,6 +149,29 @@ class _QRScannerViewState extends State<QRScannerView> {
       _isScanning = true;
       _lastScanTime = null;
     });
+  }
+
+  String _getTicketStatusText(String ticketStatus) {
+    switch (ticketStatus) {
+      case 'valid':
+        return 'Ticket válido, listo para usar';
+      case 'validated':
+        return 'Ticket ya validado y utilizado';
+      case 'expired':
+        return 'Ticket expirado';
+      case 'invalid_replaced':
+        return 'Ticket inválido - fue reemplazado';
+      case 'invalid_cancelled':
+        return 'Ticket inválido - fue cancelado';
+      case 'invalid':
+        return 'Ticket inválido';
+      default:
+        return 'Estado desconocido';
+    }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -367,6 +387,9 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   void _showValidationDialog(BuildContext context, ValidationResult result) {
+    // Capturar la referencia al bloc antes de mostrar el diálogo
+    final scannerBloc = context.read<ScannerBloc>();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -386,11 +409,29 @@ class _QRScannerViewState extends State<QRScannerView> {
             const SizedBox(height: 8),
             Text('Participante: ${result.participantName}'),
             const SizedBox(height: 8),
-            Text('RUT: ${result.participantRut}'),
+            Text(
+              '${result.documentType.toUpperCase()}: ${result.participantRut}',
+            ),
+            const SizedBox(height: 8),
+            Text('Estado del Participante: ${result.participantStatus}'),
+            const SizedBox(height: 8),
+            Text('Correlativo del Ticket: ${result.ticketCorrelative}'),
             const SizedBox(height: 8),
             Text('Categoría: ${result.categoryName}'),
             const SizedBox(height: 8),
-            Text('Estado: ${result.ticketStatus}'),
+            if (result.ticketName != null) ...[
+              Text('Ticket: ${result.ticketName}'),
+              const SizedBox(height: 8),
+            ],
+            if (result.purchaseDate != null) ...[
+              Text('Fecha de Compra: ${_formatDateTime(result.purchaseDate!)}'),
+              const SizedBox(height: 8),
+            ],
+            if (result.validatedAt != null) ...[
+              Text('Validado en: ${_formatDateTime(result.validatedAt!)}'),
+              const SizedBox(height: 8),
+            ],
+            Text('Estado: ${_getTicketStatusText(result.ticketStatus)}'),
           ],
         ),
         actions: [
@@ -401,12 +442,17 @@ class _QRScannerViewState extends State<QRScannerView> {
             },
             child: const Text('Cerrar'),
           ),
-          if (result.ticketStatus == 'not_validated')
+          if (result.ticketStatus == 'valid')
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Aquí podrías agregar lógica para validar el ticket
-                _resetScanning();
+                // Llamar al endpoint POST("/tickets/validate-qr")
+                final validationCode =
+                    result.validationCode ?? _currentValidationCode;
+                if (validationCode != null) {
+                  // Usar la referencia capturada del bloc
+                  scannerBloc.add(ConfirmValidationEvent(validationCode));
+                }
               },
               child: const Text('Validar'),
             ),
@@ -416,49 +462,111 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   void _showSuccessDialog(BuildContext context, ValidationResult result) {
-    _playSound(AppConstants.scanSuccessSound);
     _vibrate();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: AppColors.success),
-            SizedBox(width: 8),
-            Text('Validación Exitosa'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('El ticket ha sido validado correctamente.'),
-            const SizedBox(height: 16),
-            Text('Participante: ${result.participantName}'),
-            const SizedBox(height: 8),
-            Text('Evento: ${result.eventName}'),
-            const SizedBox(height: 8),
-            Text('Categoría: ${result.categoryName}'),
-            const SizedBox(height: 8),
-            Text('RUT: ${result.participantRut}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetScanning();
-            },
-            child: const Text('Continuar'),
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16.0),
+        child: Container(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 32,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Validación Exitosa',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.success,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'El ticket ha sido validado correctamente.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 20),
+                _buildInfoRow('Participante', result.participantName),
+                const SizedBox(height: 12),
+                _buildInfoRow('Evento', result.eventName),
+                const SizedBox(height: 12),
+                _buildInfoRow('Categoría', result.categoryName),
+                const SizedBox(height: 12),
+                _buildInfoRow('RUT', result.participantRut),
+                if (result.ticketName != null) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoRow('Nombre del Ticket', result.ticketName!),
+                ],
+                if (result.purchaseDate != null) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoRow(
+                    'Fecha de Compra',
+                    _formatDateTime(result.purchaseDate!),
+                  ),
+                ],
+                if (result.validatedAt != null) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoRow(
+                    'Validado en',
+                    _formatDateTime(result.validatedAt!),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _resetScanning();
+                        },
+                        child: const Text('Continuar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+        ),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+      ],
+    );
+  }
+
   void _showTicketNotFoundDialog(BuildContext context, String validationCode) {
-    _playSound(AppConstants.scanErrorSound);
     _vibrate();
 
     showDialog(
@@ -499,7 +607,6 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   void _showErrorDialog(BuildContext context, String message) {
-    _playSound(AppConstants.scanErrorSound);
     _vibrate();
 
     showDialog(

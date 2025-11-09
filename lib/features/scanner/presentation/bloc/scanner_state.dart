@@ -73,3 +73,16 @@ class TicketNotFound extends ScannerState {
   @override
   List<Object> get props => [validationCode];
 }
+
+/// Estado del historial cargado
+class ScanHistoryLoaded extends ScannerState {
+  final List<ValidationResult> history;
+
+  const ScanHistoryLoaded(this.history);
+
+  @override
+  List<Object> get props => [history];
+}
+
+/// Estado del historial limpiado
+class ScanHistoryCleared extends ScannerState {}

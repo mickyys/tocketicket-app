@@ -12,8 +12,8 @@ class AppConstants {
   //
   // Para encontrar tu IP local, ejecuta en terminal: ifconfig | grep "inet "
 
-  static const String _localNetworkUrl = 'https://api.dev.tocketicket.com';
-  static const String _productionUrl = 'https://api.tocketicket.com';
+  static const String _localNetworkUrl = 'https://api.dev.tocketicket.cl';
+  static const String _productionUrl = 'https://api.tocketicket.cl';
 
   // URL base actual - configurada para iOS y dispositivos físicos
   static const String baseUrl = _localNetworkUrl;
@@ -75,7 +75,7 @@ class AppConstants {
 
   // Database
   static const String databaseName = 'tocket_validator.db';
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 2;
 
   // QR Scanner
   static const Duration scanCooldown = Duration(seconds: 2);

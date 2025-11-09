@@ -45,8 +45,15 @@ class TicketRepositoryImpl implements TicketRepository {
       participantDocument: model.participantDocument ?? model.participantRut,
       documentType:
           model.documentType ?? 'rut', // Default a RUT si no está especificado
+      participantStatus:
+          model.participantStatus ?? 'active', // Valor por defecto
+      ticketCorrelative: model.ticketCorrelative ?? 0, // Valor por defecto
       ticketStatus: model.ticketStatus,
+      validatedAt: model.validatedAt,
       categoryName: model.categoryName,
+      ticketName: model.ticketName,
+      purchaseDate: model.purchaseDate,
+      validationCode: model.validationCode,
     );
   }
 }

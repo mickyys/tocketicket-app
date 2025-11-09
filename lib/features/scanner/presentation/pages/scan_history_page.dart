@@ -4,7 +4,11 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/document_formatter.dart';
 import '../../domain/entities/validation_result.dart';
+import '../../domain/usecases/check_ticket_status.dart';
+import '../../domain/usecases/validate_ticket_qr.dart';
+import '../../data/repositories/scan_history_repository.dart';
 import '../bloc/scanner_bloc.dart';
+import '../bloc/scanner_event.dart';
 import '../bloc/scanner_state.dart';
 
 class ScanHistoryPage extends StatefulWidget {
@@ -15,66 +19,66 @@ class ScanHistoryPage extends StatefulWidget {
 }
 
 class _ScanHistoryPageState extends State<ScanHistoryPage> {
+  late ScannerBloc _scannerBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _scannerBloc = ScannerBloc(
+      checkTicketStatus: context.read<CheckTicketStatus>(),
+      validateTicketQR: context.read<ValidateTicketQR>(),
+      scanHistoryRepository: ScanHistoryRepository(),
+    );
+    // Cargar el historial al inicializar
+    _scannerBloc.add(GetScanHistoryEvent());
+  }
+
+  @override
+  void dispose() {
+    _scannerBloc.close();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Historial de Escaneos'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 2,
-        shadowColor: AppColors.shadow,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            onPressed: () => _showClearHistoryDialog(context),
-            tooltip: 'Limpiar historial',
-            style: IconButton.styleFrom(
-              foregroundColor: AppColors.white,
-              highlightColor: AppColors.white.withValues(alpha: 0.1),
+    return BlocProvider.value(
+      value: _scannerBloc,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Historial de Escaneos'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.white,
+          elevation: 2,
+          shadowColor: AppColors.shadow,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
+              onPressed: () => _showClearHistoryDialog(context),
+              tooltip: 'Limpiar historial',
+              style: IconButton.styleFrom(
+                foregroundColor: AppColors.white,
+                highlightColor: AppColors.white.withValues(alpha: 0.1),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: BlocBuilder<ScannerBloc, ScannerState>(
-        builder: (context, state) {
-          return _buildHistoryList();
-        },
+          ],
+        ),
+        body: BlocBuilder<ScannerBloc, ScannerState>(
+          builder: (context, state) {
+            if (state is ScanHistoryLoaded) {
+              return _buildHistoryList(state.history);
+            } else if (state is ScannerError) {
+              return _buildErrorWidget(state.message);
+            } else {
+              return _buildLoadingWidget();
+            }
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildHistoryList() {
-    // TODO: Implementar almacenamiento local del historial
-    // Por ahora mostramos datos de ejemplo
-    final List<ValidationResult> historyItems = [
-      const ValidationResult(
-        eventName: 'Concierto Rock 2025',
-        participantName: 'Juan Pérez',
-        participantDocument: '123456789',
-        documentType: 'rut',
-        ticketStatus: 'valid',
-        categoryName: 'VIP',
-      ),
-      const ValidationResult(
-        eventName: 'Festival de Jazz',
-        participantName: 'María González',
-        participantDocument: 'PP1234567',
-        documentType: 'pasaporte',
-        ticketStatus: 'used',
-        categoryName: 'General',
-      ),
-      const ValidationResult(
-        eventName: 'Evento Corporativo',
-        participantName: 'Carlos Rodríguez',
-        participantDocument: '987654321',
-        documentType: 'rut',
-        ticketStatus: 'expired',
-        categoryName: 'Ejecutivo',
-      ),
-    ];
-
+  Widget _buildHistoryList(List<ValidationResult> historyItems) {
     if (historyItems.isEmpty) {
       return Container(
         color: AppColors.background,
@@ -333,6 +337,8 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildDetailRow('Evento', result.eventName),
+                _buildDetailRow('Participante', result.participantName),
                 _buildDetailRow(
                   DocumentFormatter.getDocumentTypeDisplay(result.documentType),
                   DocumentFormatter.formatDocument(
@@ -341,12 +347,30 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                   ),
                 ),
                 _buildDetailRow(
+                  'Estado del Participante',
+                  result.participantStatus,
+                ),
+                _buildDetailRow(
+                  'Correlativo del Ticket',
+                  result.ticketCorrelative.toString(),
+                ),
+                _buildDetailRow('Categoría', result.categoryName),
+                if (result.ticketName != null)
+                  _buildDetailRow('Nombre del Ticket', result.ticketName!),
+                if (result.purchaseDate != null)
+                  _buildDetailRow(
+                    'Fecha de Compra',
+                    _formatDateTime(result.purchaseDate!),
+                  ),
+                if (result.validatedAt != null)
+                  _buildDetailRow(
+                    'Validado en',
+                    _formatDateTime(result.validatedAt!),
+                  ),
+                _buildDetailRow(
                   'Estado',
                   _getStatusDisplayName(result.ticketStatus),
                 ),
-                _buildDetailRow('Evento', result.eventName),
-                _buildDetailRow('Categoría', result.categoryName),
-                _buildDetailRow('Participante', result.participantName),
               ],
             ),
           ),
@@ -435,6 +459,10 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     }
   }
 
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
   void _showClearHistoryDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -490,7 +518,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Implementar limpieza del historial
+              _scannerBloc.add(ClearScanHistoryEvent());
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text(
@@ -550,5 +578,59 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
       default:
         return AppColors.grey;
     }
+  }
+
+  Widget _buildLoadingWidget() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Cargando historial...',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const SizedBox(height: 16),
+          Text(
+            'Error al cargar el historial',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              _scannerBloc.add(GetScanHistoryEvent());
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
   }
 }

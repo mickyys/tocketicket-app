@@ -96,11 +96,20 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         validationCode TEXT NOT NULL,
         eventId TEXT NOT NULL,
+        eventName TEXT,
         isValid INTEGER NOT NULL,
         status TEXT NOT NULL,
         message TEXT NOT NULL,
         participantName TEXT,
         participantEmail TEXT,
+        participantDocument TEXT,
+        documentType TEXT,
+        participantStatus TEXT,
+        ticketCorrelative INTEGER,
+        categoryName TEXT,
+        ticketName TEXT,
+        purchaseDate TEXT,
+        originalValidatedAt TEXT,
         validatedAt TEXT NOT NULL,
         validatedBy TEXT NOT NULL,
         isSynced INTEGER NOT NULL DEFAULT 0,
@@ -146,7 +155,9 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX idx_sync_queue_processed ON sync_queue (isProcessed)',
     );
-    await db.execute('CREATE INDEX idx_attendees_event_id ON attendees (eventId)');
+    await db.execute(
+      'CREATE INDEX idx_attendees_event_id ON attendees (eventId)',
+    );
     await db.execute(
       'CREATE INDEX idx_attendees_validation_code ON attendees (validationCode)',
     );
@@ -155,11 +166,41 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Handle database upgrades here
     if (oldVersion < 2) {
-      // Add new columns or tables for version 2
+      // Add new columns for validation_history table
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN eventName TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN participantDocument TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN documentType TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN participantStatus TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN ticketCorrelative INTEGER',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN categoryName TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN ticketName TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN purchaseDate TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE validation_history ADD COLUMN originalValidatedAt TEXT',
+      );
     }
   }
 
-  Future<void> syncAttendees(String eventId, List<Map<String, dynamic>> attendees) async {
+  Future<void> syncAttendees(
+    String eventId,
+    List<Map<String, dynamic>> attendees,
+  ) async {
     final db = await database;
     await db.transaction((txn) async {
       // First, delete all existing attendees for this event
