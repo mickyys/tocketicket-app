@@ -54,9 +54,7 @@ class _HomePageState extends State<HomePage> {
       case 1:
         // Scanner
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const OrganizerEventsPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const OrganizerEventsPage()),
         );
         break;
       case 2:
