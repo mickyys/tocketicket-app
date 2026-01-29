@@ -7,11 +7,7 @@ class MainActionsGrid extends StatelessWidget {
   final VoidCallback? onScanPress;
   final VoidCallback? onHistoryPress;
 
-  const MainActionsGrid({
-    super.key,
-    this.onScanPress,
-    this.onHistoryPress,
-  });
+  const MainActionsGrid({super.key, this.onScanPress, this.onHistoryPress});
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +68,7 @@ class MainActionsGrid extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                border: Border.all(
-                  color: AppColors.border,
-                  width: 1,
-                ),
+                border: Border.all(color: AppColors.border, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Material(
@@ -86,11 +79,7 @@ class MainActionsGrid extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.history,
-                        size: 32,
-                        color: AppColors.primary,
-                      ),
+                      Icon(Icons.history, size: 32, color: AppColors.primary),
                       const SizedBox(height: 8),
                       const Text(
                         'Historial',

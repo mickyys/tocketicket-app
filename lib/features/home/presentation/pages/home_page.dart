@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/index.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../events/presentation/pages/organizer_events_page.dart';
-import '../../../scanner/presentation/pages/qr_scanner_page.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
-import '../../../scanner/presentation/bloc/scanner_bloc.dart';
-import '../../../scanner/domain/usecases/check_ticket_status.dart';
-import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -60,22 +55,14 @@ class _HomePageState extends State<HomePage> {
         // Scanner
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => BlocProvider(
-              create: (context) => ScannerBloc(
-                validateTicketQr: context.read<ValidateTicketQr>(),
-                checkTicketStatus: context.read<CheckTicketStatus>(),
-              ),
-              child: const QrScannerPage(),
-            ),
+            builder: (context) => const OrganizerEventsPage(),
           ),
         );
         break;
       case 2:
         // History
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const ScanHistoryPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const ScanHistoryPage()),
         );
         break;
     }
@@ -98,11 +85,7 @@ class _HomePageState extends State<HomePage> {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.qr_code,
-                color: Colors.white,
-                size: 24,
-              ),
+              child: const Icon(Icons.qr_code, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 12),
             const Column(
@@ -212,7 +195,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildEventsList() {
     // Datos simulados para eventos
-    final events = [
+    final List<Map<String, dynamic>> events = [
       {
         'name': 'Marathon 2026',
         'date': '29 Enero 2026',
@@ -251,10 +234,10 @@ class _HomePageState extends State<HomePage> {
         (index) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: EventCard(
-            eventName: events[index]['name']!,
-            date: events[index]['date']!,
-            location: events[index]['location']!,
-            totalTickets: events[index]['tickets']!,
+            eventName: events[index]['name'] as String,
+            date: events[index]['date'] as String,
+            location: events[index]['location'] as String,
+            totalTickets: events[index]['tickets'] as int,
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(

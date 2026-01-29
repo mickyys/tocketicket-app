@@ -13,18 +13,9 @@ class BottomNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     this.items = const [
-      BottomNavItem(
-        icon: Icons.calendar_today,
-        label: 'Eventos',
-      ),
-      BottomNavItem(
-        icon: Icons.qr_code_scanner,
-        label: 'Escanear',
-      ),
-      BottomNavItem(
-        icon: Icons.history,
-        label: 'Historial',
-      ),
+      BottomNavItem(icon: Icons.calendar_today, label: 'Eventos'),
+      BottomNavItem(icon: Icons.qr_code_scanner, label: 'Escanear'),
+      BottomNavItem(icon: Icons.history, label: 'Historial'),
     ],
   });
 
@@ -33,12 +24,7 @@ class BottomNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.border,
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -110,8 +96,5 @@ class BottomNavItem {
   final IconData icon;
   final String label;
 
-  const BottomNavItem({
-    required this.icon,
-    required this.label,
-  });
+  const BottomNavItem({required this.icon, required this.label});
 }

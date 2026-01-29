@@ -117,11 +117,7 @@ class EventCard extends StatelessWidget {
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: AppColors.primary,
-        ),
+        Icon(icon, size: 16, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
