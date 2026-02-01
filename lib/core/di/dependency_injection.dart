@@ -12,6 +12,7 @@ import '../../features/scanner/data/repositories/ticket_repository_impl.dart';
 import '../../features/scanner/domain/repositories/ticket_repository.dart';
 import '../../features/scanner/domain/usecases/check_ticket_status.dart';
 import '../../features/scanner/domain/usecases/validate_ticket_qr.dart';
+import '../../features/scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../storage/database_helper.dart';
 
 class DependencyInjection {
@@ -79,6 +80,11 @@ class DependencyInjection {
 
     RepositoryProvider<ValidateTicketQR>(
       create: (context) => ValidateTicketQR(context.read<TicketRepository>()),
+    ),
+
+    RepositoryProvider<UpdateTicketRunnerData>(
+      create: (context) =>
+          UpdateTicketRunnerData(context.read<TicketRepository>()),
     ),
   ];
 }

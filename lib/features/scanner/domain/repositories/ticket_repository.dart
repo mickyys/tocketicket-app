@@ -15,4 +15,13 @@ abstract class TicketRepository {
   Future<Either<Failure, ValidationResult>> validateTicketQR(
     String validationCode,
   );
+
+  /// Actualiza los datos del corredor (número y chip) de un ticket
+  /// Endpoint: POST /tickets/validate-qr
+  /// Body: {"validationCode": "code", "runnerNumber": "123", "chipId": "CHIP123"}
+  Future<Either<Failure, ValidationResult>> updateTicketRunnerData(
+    String validationCode,
+    String runnerNumber,
+    String chipId,
+  );
 }

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/document_formatter.dart';
-import '../../domain/entities/validation_result.dart';
-import '../bloc/scanner_bloc.dart';
-import '../bloc/scanner_state.dart';
+import '../../../../core/services/read_history_service.dart';
+import '../../domain/entities/read_record.dart';
 
 class ScanHistoryPage extends StatefulWidget {
   const ScanHistoryPage({super.key});
@@ -15,12 +12,20 @@ class ScanHistoryPage extends StatefulWidget {
 }
 
 class _ScanHistoryPageState extends State<ScanHistoryPage> {
+  late Future<List<ReadRecord>> _historyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyFuture = ReadHistoryService.getHistory();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Historial de Escaneos'),
+        title: const Text('Historial de Lecturas'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 2,
@@ -37,44 +42,53 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
           ),
         ],
       ),
-      body: BlocBuilder<ScannerBloc, ScannerState>(
-        builder: (context, state) {
-          return _buildHistoryList();
+      body: FutureBuilder<List<ReadRecord>>(
+        future: _historyFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Error al cargar el historial'),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _historyFuture = ReadHistoryService.getHistory();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                    ),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final historyItems = snapshot.data ?? [];
+          return _buildHistoryList(historyItems);
         },
       ),
     );
   }
 
-  Widget _buildHistoryList() {
-    // TODO: Implementar almacenamiento local del historial
-    // Por ahora mostramos datos de ejemplo
-    final List<ValidationResult> historyItems = [
-      const ValidationResult(
-        eventName: 'Concierto Rock 2025',
-        participantName: 'Juan Pérez',
-        participantDocument: '123456789',
-        documentType: 'rut',
-        ticketStatus: 'valid',
-        categoryName: 'VIP',
-      ),
-      const ValidationResult(
-        eventName: 'Festival de Jazz',
-        participantName: 'María González',
-        participantDocument: 'PP1234567',
-        documentType: 'pasaporte',
-        ticketStatus: 'used',
-        categoryName: 'General',
-      ),
-      const ValidationResult(
-        eventName: 'Evento Corporativo',
-        participantName: 'Carlos Rodríguez',
-        participantDocument: '987654321',
-        documentType: 'rut',
-        ticketStatus: 'expired',
-        categoryName: 'Ejecutivo',
-      ),
-    ];
-
+  Widget _buildHistoryList(List<ReadRecord> historyItems) {
     if (historyItems.isEmpty) {
       return Container(
         color: AppColors.background,
@@ -96,7 +110,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'No hay escaneos recientes',
+                'No hay lecturas registradas',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -107,7 +121,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  'Los códigos QR escaneados aparecerán aquí',
+                  'Las lecturas de códigos QR aparecerán aquí',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -134,7 +148,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
-  Widget _buildHistoryCard(ValidationResult result) {
+  Widget _buildHistoryCard(ReadRecord record) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.margin),
       elevation: 2,
@@ -148,7 +162,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         splashColor: AppColors.primary.withValues(alpha: 0.1),
         highlightColor: AppColors.primary.withValues(alpha: 0.05),
-        onTap: () => _showDetailDialog(result),
+        onTap: () => _showDetailDialog(record),
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.padding),
           child: Column(
@@ -157,8 +171,10 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               Row(
                 children: [
                   Icon(
-                    _getStatusIcon(result.ticketStatus),
-                    color: _getStatusColor(result.ticketStatus),
+                    record.isFirstTime ? Icons.check_circle : Icons.update,
+                    color: record.isFirstTime
+                        ? AppColors.success
+                        : AppColors.warning,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -167,20 +183,17 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          DocumentFormatter.formatDocument(
-                            result.participantDocument,
-                            result.documentType,
-                          ),
+                          record.participantName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          DocumentFormatter.getDocumentTypeDisplay(
-                            result.documentType,
-                          ),
+                          'Corredor: ${record.runnerNumber}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -195,21 +208,27 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(
-                        result.ticketStatus,
-                      ).withValues(alpha: 0.1),
+                      color:
+                          (record.isFirstTime
+                                  ? AppColors.success
+                                  : AppColors.warning)
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _getStatusColor(
-                          result.ticketStatus,
-                        ).withValues(alpha: 0.3),
+                        color:
+                            (record.isFirstTime
+                                    ? AppColors.success
+                                    : AppColors.warning)
+                                .withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
-                      _getStatusDisplayName(result.ticketStatus),
+                      record.isFirstTime ? 'Primera vez' : 'Actualización',
                       style: TextStyle(
                         fontSize: 12,
-                        color: _getStatusColor(result.ticketStatus),
+                        color: record.isFirstTime
+                            ? AppColors.success
+                            : AppColors.warning,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -227,25 +246,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      result.eventName,
-                      style: const TextStyle(color: AppColors.textSecondary),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.person,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      result.participantName,
+                      record.eventName,
                       style: const TextStyle(color: AppColors.textSecondary),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -262,7 +263,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Hace 5 minutos', // TODO: Calcular tiempo real
+                    _formatTime(record.timestamp),
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -283,7 +284,32 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
-  void _showDetailDialog(ValidationResult result) {
+  String _formatTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inSeconds < 60) {
+      return 'Hace unos segundos';
+    } else if (difference.inMinutes < 60) {
+      return 'Hace ${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
+    } else if (difference.inHours < 24) {
+      return 'Hace ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
+    } else {
+      return 'Hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
+    }
+  }
+
+  String _formatDetailDateTime(DateTime timestamp) {
+    final day = timestamp.day.toString().padLeft(2, '0');
+    final month = timestamp.month.toString().padLeft(2, '0');
+    final year = timestamp.year;
+    final hour = timestamp.hour.toString().padLeft(2, '0');
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final second = timestamp.second.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute:$second';
+  }
+
+  void _showDetailDialog(ReadRecord record) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -297,21 +323,23 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _getStatusColor(
-                  result.ticketStatus,
-                ).withValues(alpha: 0.1),
+                color:
+                    (record.isFirstTime ? AppColors.success : AppColors.warning)
+                        .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                _getStatusIcon(result.ticketStatus),
-                color: _getStatusColor(result.ticketStatus),
+                record.isFirstTime ? Icons.check_circle : Icons.update,
+                color: record.isFirstTime
+                    ? AppColors.success
+                    : AppColors.warning,
                 size: 20,
               ),
             ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Detalles del Ticket',
+                'Detalles de Lectura',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
@@ -333,20 +361,19 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildDetailRow('Participante', record.participantName),
+                _buildDetailRow('Evento', record.eventName),
+                _buildDetailRow('Corredor', record.runnerNumber),
+                _buildDetailRow('Ticket ID', record.ticketId),
+                _buildDetailRow('Chip ID', record.chipId),
                 _buildDetailRow(
-                  DocumentFormatter.getDocumentTypeDisplay(result.documentType),
-                  DocumentFormatter.formatDocument(
-                    result.participantDocument,
-                    result.documentType,
-                  ),
+                  'Tipo',
+                  record.isFirstTime ? 'Primera vez' : 'Actualización',
                 ),
                 _buildDetailRow(
-                  'Estado',
-                  _getStatusDisplayName(result.ticketStatus),
+                  'Fecha y Hora',
+                  _formatDetailDateTime(record.timestamp),
                 ),
-                _buildDetailRow('Evento', result.eventName),
-                _buildDetailRow('Categoría', result.categoryName),
-                _buildDetailRow('Participante', result.participantName),
               ],
             ),
           ),
@@ -359,32 +386,6 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
             ),
             child: const Text('Cerrar'),
           ),
-          if (result.ticketStatus == 'valid')
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // TODO: Permitir validar desde el historial
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text(
-                      'Funcionalidad de validación desde historial pendiente',
-                    ),
-                    backgroundColor: AppColors.info,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: AppColors.white,
-                elevation: 2,
-                shadowColor: AppColors.shadow,
-              ),
-              child: const Text('Validar'),
-            ),
         ],
       ),
     );
@@ -416,23 +417,6 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
         ],
       ),
     );
-  }
-
-  String _getStatusDisplayName(String status) {
-    switch (status) {
-      case 'valid':
-        return 'Válido';
-      case 'invalid':
-        return 'Inválido';
-      case 'used':
-        return 'Usado';
-      case 'expired':
-        return 'Expirado';
-      case 'notFound':
-        return 'No encontrado';
-      default:
-        return 'Desconocido';
-    }
   }
 
   void _showClearHistoryDialog(BuildContext context) {
@@ -472,7 +456,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
           ],
         ),
         content: const Text(
-          '¿Estás seguro de que quieres eliminar todo el historial de escaneos? Esta acción no se puede deshacer.',
+          '¿Estás seguro de que quieres eliminar todo el historial de lecturas? Esta acción no se puede deshacer.',
           style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 14,
@@ -488,22 +472,27 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              // TODO: Implementar limpieza del historial
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                    'Historial limpiado',
-                    style: TextStyle(color: AppColors.white),
+              await ReadHistoryService.clearHistory();
+              setState(() {
+                _historyFuture = ReadHistoryService.getHistory();
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Historial limpiado',
+                      style: TextStyle(color: AppColors.white),
+                    ),
+                    backgroundColor: AppColors.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  backgroundColor: AppColors.success,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
@@ -518,37 +507,5 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'valid':
-        return Icons.check_circle;
-      case 'invalid':
-        return Icons.cancel;
-      case 'used':
-        return Icons.check_circle_outline;
-      case 'expired':
-        return Icons.access_time;
-      case 'notFound':
-        return Icons.search_off;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'valid':
-        return AppColors.success;
-      case 'invalid':
-        return AppColors.error;
-      case 'used':
-        return AppColors.warning;
-      case 'expired':
-        return AppColors.error;
-      case 'notFound':
-        return AppColors.grey;
-      default:
-        return AppColors.grey;
-    }
-  }
+  // Métodos obsoletos - removidos al refactorizar para usar ReadRecord
 }

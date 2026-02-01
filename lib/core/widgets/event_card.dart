@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
-/// Widget de tarjeta de evento estilo tocke-app-2026
-/// Muestra la información principal del evento de forma atractiva
+/// Widget de tarjeta de evento estilo EventsDashboard.tsx (tocke-app-2026)
+/// Diseño mejorado siguiendo el estilo del componente React
 class EventCard extends StatelessWidget {
   final String eventName;
   final String date;
@@ -31,14 +31,10 @@ class EventCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(
+            color: AppColors.border.withValues(alpha: 0.5),
+            width: 1,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -50,25 +46,29 @@ class EventCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header con nombre del evento y badge
+                  // Header: Nombre del evento, badge y chevron
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Columna izquierda: Nombre y badge
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Nombre del evento
                             Text(
                               eventName,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
+                                height: 1.3,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 8),
+                            // Badge de estado
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -91,7 +91,8 @@ class EventCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(
+                      // Icono chevron derecha
+                      const Icon(
                         Icons.chevron_right,
                         color: AppColors.primary,
                         size: 24,
@@ -99,6 +100,7 @@ class EventCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
+
                   // Información del evento
                   _buildInfoRow(Icons.calendar_today, date),
                   const SizedBox(height: 8),

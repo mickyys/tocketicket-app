@@ -38,15 +38,43 @@ class TicketRepositoryImpl implements TicketRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, ValidationResult>> updateTicketRunnerData(
+    String validationCode,
+    String runnerNumber,
+    String chipId,
+  ) async {
+    try {
+      final result = await remoteDataSource.updateTicketRunnerData(
+        validationCode,
+        runnerNumber,
+        chipId,
+      );
+      return Right(_mapToEntity(result));
+    } on ServerException catch (e) {
+      return Left(ValidationFailure(e.message));
+    } catch (e) {
+      return Left(ValidationFailure('Error inesperado: $e'));
+    }
+  }
+
   ValidationResult _mapToEntity(dynamic model) {
     return ValidationResult(
       eventName: model.eventName,
       participantName: model.participantName,
-      participantDocument: model.participantDocument ?? model.participantRut,
-      documentType:
-          model.documentType ?? 'rut', // Default a RUT si no está especificado
       ticketStatus: model.ticketStatus,
       categoryName: model.categoryName,
+      ticketName: model.ticketName,
+      ticketCorrelative: model.ticketCorrelative,
+      participantStatus: model.participantStatus,
+      participantDocumentType: model.participantDocumentType,
+      participantDocumentNumber: model.participantDocumentNumber,
+      validatedAt: model.validatedAt,
+      purchaseDate: model.purchaseDate,
+      runnerNumber: model.runnerNumber,
+      chipId: model.chipId,
+      validationCode: model.validationCode,
+      isValid: model.isValid ?? (model.ticketStatus == 'valid'),
     );
   }
 }
