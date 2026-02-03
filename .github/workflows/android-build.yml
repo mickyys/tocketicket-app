@@ -1,0 +1,101 @@
+name: 🤖 Build Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - apk
+          - aab
+          - both
+
+jobs:
+  build-android:
+    name: 🔨 Build Android
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: ☕ Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: 🐦 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+
+    - name: 🔍 Verify Flutter installation
+      run: flutter doctor -v
+
+    - name: 📦 Get dependencies
+      run: flutter pub get
+
+    - name: 🧹 Clean previous builds
+      run: flutter clean
+
+    - name: 📝 Create key.properties (if needed)
+      run: |
+        echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+        echo "storeFile=../app/upload-keystore.jks" >> android/key.properties
+      if: github.event.inputs.environment == 'prod'
+
+    - name: 📱 Build APK
+      run: flutter build apk --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
+      if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both'
+
+    - name: 📦 Build AAB (App Bundle)
+      run: flutter build appbundle --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
+      if: github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both'
+
+    - name: 📤 Upload APK artifact
+      uses: actions/upload-artifact@v3
+      if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both'
+      with:
+        name: tocke-${{ github.event.inputs.environment }}-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+
+    - name: 📤 Upload AAB artifact
+      uses: actions/upload-artifact@v3
+      if: github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both'
+      with:
+        name: tocke-${{ github.event.inputs.environment }}-aab
+        path: build/app/outputs/bundle/release/app-release.aab
+
+    - name: 📊 Build Summary
+      run: |
+        echo "## 🎉 Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Type:** ${{ github.event.inputs.build_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Platform:** Android" >> $GITHUB_STEP_SUMMARY
+        echo "- **Built at:** $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ github.event.inputs.build_type }}" == "apk" || "${{ github.event.inputs.build_type }}" == "both" ]]; then
+          APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+          echo "- **APK Size:** $APK_SIZE" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [[ "${{ github.event.inputs.build_type }}" == "aab" || "${{ github.event.inputs.build_type }}" == "both" ]]; then
+          AAB_SIZE=$(du -h build/app/outputs/bundle/release/app-release.aab | cut -f1)
+          echo "- **AAB Size:** $AAB_SIZE" >> $GITHUB_STEP_SUMMARY
+        fi

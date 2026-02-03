@@ -1,4 +1,5 @@
 # Miscellaneous
+certificates/
 *.class
 *.log
 *.pyc

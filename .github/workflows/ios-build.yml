@@ -1,0 +1,118 @@
+name: 🍎 Build iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  build-ios:
+    name: 🔨 Build iOS
+    runs-on: macos-latest
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🍎 Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: 🐦 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+
+    - name: 🔍 Verify Flutter installation
+      run: flutter doctor -v
+
+    - name: 📦 Get dependencies
+      run: flutter pub get
+
+    - name: 🍎 Install iOS dependencies
+      run: |
+        cd ios
+        pod install --repo-update
+
+    - name: 🧹 Clean previous builds
+      run: flutter clean
+
+    - name: 🔧 Import Code-Signing Certificates (Production only)
+      if: github.event.inputs.environment == 'prod'
+      uses: Apple-Actions/import-codesign-certs@v2
+      with:
+        p12-file-base64: ${{ secrets.IOS_DIST_SIGNING_KEY }}
+        p12-password: ${{ secrets.IOS_DIST_SIGNING_KEY_PASSWORD }}
+
+    - name: 📝 Import Provisioning Profile (Production only)
+      if: github.event.inputs.environment == 'prod'
+      uses: Apple-Actions/download-provisioning-profiles@v1
+      with:
+        bundle-id: cl.tocketicket.staffscanner
+        issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+
+    - name: 🏗️ Build iOS (Debug - Dev)
+      if: github.event.inputs.environment == 'dev'
+      run: |
+        flutter build ios --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --debug --no-codesign
+
+    - name: 🏗️ Build iOS (Release - Prod)
+      if: github.event.inputs.environment == 'prod'
+      run: |
+        flutter build ios --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
+
+    - name: 📦 Create IPA (Production only)
+      if: github.event.inputs.environment == 'prod'
+      run: |
+        cd ios
+        xcodebuild -workspace Runner.xcworkspace \
+                   -scheme Runner \
+                   -sdk iphoneos \
+                   -configuration Release \
+                   -archivePath ./Runner.xcarchive \
+                   archive
+
+        xcodebuild -archivePath ./Runner.xcarchive \
+                   -exportOptionsPlist ExportOptions.plist \
+                   -exportPath ./build \
+                   -allowProvisioningUpdates \
+                   -exportArchive
+
+    - name: 📤 Upload iOS Debug Build (Dev)
+      uses: actions/upload-artifact@v3
+      if: github.event.inputs.environment == 'dev'
+      with:
+        name: tocke-${{ github.event.inputs.environment }}-ios-debug
+        path: build/ios/iphoneos/Runner.app
+
+    - name: 📤 Upload IPA (Production)
+      uses: actions/upload-artifact@v3
+      if: github.event.inputs.environment == 'prod'
+      with:
+        name: tocke-${{ github.event.inputs.environment }}-ipa
+        path: ios/build/*.ipa
+
+    - name: 📊 Build Summary
+      run: |
+        echo "## 🎉 iOS Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Platform:** iOS" >> $GITHUB_STEP_SUMMARY
+        echo "- **Built at:** $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ github.event.inputs.environment }}" == "prod" ]]; then
+          echo "- **Output:** IPA file ready for App Store" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Output:** Debug build for development" >> $GITHUB_STEP_SUMMARY
+        fi
