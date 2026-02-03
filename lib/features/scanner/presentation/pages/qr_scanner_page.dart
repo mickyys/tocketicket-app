@@ -46,11 +46,25 @@ class _QRScannerViewState extends State<QRScannerView> {
   DateTime? _lastScanTime;
   final AudioPlayer _audioPlayer = AudioPlayer();
   late ScannerBloc _scannerBloc;
+  bool _audioInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _initializeScanner();
+    _initializeAudio();
+  }
+
+  Future<void> _initializeAudio() async {
+    try {
+      // Configurar el audio player para iOS/macOS
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+      _audioInitialized = true;
+    } catch (e) {
+      // Ignorar errores de inicialización de audio
+      debugPrint('Error initializing audio: $e');
+    }
   }
 
   @override
@@ -139,12 +153,16 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   Future<void> _playSound(String soundPath) async {
+    if (!_audioInitialized) return;
     try {
-      await _audioPlayer.play(
-        AssetSource(soundPath.replaceFirst('assets/', '')),
-      );
+      // Detener cualquier reproducción anterior
+      await _audioPlayer.stop();
+      // Usar la ruta sin 'assets/' para AssetSource
+      final source = AssetSource(soundPath.replaceFirst('assets/', ''));
+      await _audioPlayer.play(source);
     } catch (e) {
-      // Ignorar errores de audio
+      // Ignorar errores de audio - no son críticos para la funcionalidad
+      debugPrint('Error playing sound: $e');
     }
   }
 
@@ -239,7 +257,14 @@ class _QRScannerViewState extends State<QRScannerView> {
           } else if (state is TicketNotFound) {
             _showTicketNotFoundDialog(context, state.validationCode);
           } else if (state is ScannerError) {
+            // Cerrar cualquier modal abierto antes de mostrar el error
+            Navigator.of(context).popUntil((route) => route.isFirst);
             _showErrorDialog(context, state.message);
+          } else if (state is RunnerDataSaved) {
+            // Cerrar el modal y mostrar confirmación
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            _showDataSavedSnackbar(context, state.result);
+            _resetScanning();
           }
         },
         child: BlocBuilder<ScannerBloc, ScannerState>(
@@ -444,35 +469,41 @@ class _QRScannerViewState extends State<QRScannerView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (modalContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.95,
-        maxChildSize: 0.98,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => TicketStatusCard(
-          ticket: result,
-          runnerNumber: result.runnerNumber ?? '',
-          chipId: result.chipId ?? '',
-          isFirstTime: result.ticketStatus == 'valid',
-          onNewScan: () {
-            Navigator.of(modalContext).pop();
-            _resetScanning();
-          },
-          onSaveData: (runnerNumber, chipId) {
-            final validationCode = result.validationCode ?? '';
-            if (validationCode.isNotEmpty) {
-              _scannerBloc.add(
-                UpdateRunnerDataEvent(
-                  validationCode: validationCode,
-                  runnerNumber: runnerNumber,
-                  chipId: chipId,
-                ),
-              );
-            }
-            Navigator.of(modalContext).pop();
-            _resetScanning();
-          },
-        ),
+      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+        bloc: _scannerBloc,
+        builder: (context, state) {
+          final isSaving = state is SavingRunnerData;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.95,
+            maxChildSize: 0.98,
+            minChildSize: 0.5,
+            builder: (context, scrollController) => TicketStatusCard(
+              ticket: result,
+              runnerNumber: result.runnerNumber ?? '',
+              chipId: result.chipId ?? '',
+              isFirstTime: result.ticketStatus == 'valid',
+              isSaving: isSaving,
+              onNewScan: () {
+                Navigator.of(modalContext).pop();
+                _resetScanning();
+              },
+              onSaveData: (runnerNumber, chipId) {
+                final validationCode = result.validationCode ?? '';
+                if (validationCode.isNotEmpty) {
+                  _scannerBloc.add(
+                    UpdateRunnerDataEvent(
+                      validationCode: validationCode,
+                      runnerNumber: runnerNumber,
+                      chipId: chipId,
+                    ),
+                  );
+                }
+                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -493,35 +524,41 @@ class _QRScannerViewState extends State<QRScannerView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (modalContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.95,
-        maxChildSize: 0.98,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => TicketStatusCard(
-          ticket: result,
-          runnerNumber: result.runnerNumber ?? '',
-          chipId: result.chipId ?? '',
-          isFirstTime: result.ticketStatus == 'valid',
-          onNewScan: () {
-            Navigator.of(modalContext).pop();
-            _resetScanning();
-          },
-          onSaveData: (runnerNumber, chipId) {
-            final validationCode = result.validationCode ?? '';
-            if (validationCode.isNotEmpty) {
-              _scannerBloc.add(
-                UpdateRunnerDataEvent(
-                  validationCode: validationCode,
-                  runnerNumber: runnerNumber,
-                  chipId: chipId,
-                ),
-              );
-            }
-            Navigator.of(modalContext).pop();
-            _resetScanning();
-          },
-        ),
+      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+        bloc: _scannerBloc,
+        builder: (context, state) {
+          final isSaving = state is SavingRunnerData;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.95,
+            maxChildSize: 0.98,
+            minChildSize: 0.5,
+            builder: (context, scrollController) => TicketStatusCard(
+              ticket: result,
+              runnerNumber: result.runnerNumber ?? '',
+              chipId: result.chipId ?? '',
+              isFirstTime: result.ticketStatus == 'valid',
+              isSaving: isSaving,
+              onNewScan: () {
+                Navigator.of(modalContext).pop();
+                _resetScanning();
+              },
+              onSaveData: (runnerNumber, chipId) {
+                final validationCode = result.validationCode ?? '';
+                if (validationCode.isNotEmpty) {
+                  _scannerBloc.add(
+                    UpdateRunnerDataEvent(
+                      validationCode: validationCode,
+                      runnerNumber: runnerNumber,
+                      chipId: chipId,
+                    ),
+                  );
+                }
+                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -606,6 +643,31 @@ class _QRScannerViewState extends State<QRScannerView> {
             child: const Text('Reintentar'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDataSavedSnackbar(BuildContext context, ValidationResult result) {
+    _playSound(AppConstants.scanSuccessSound);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Datos guardados para ${result.participantName}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

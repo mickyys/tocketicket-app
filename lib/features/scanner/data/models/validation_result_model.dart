@@ -6,12 +6,17 @@ part 'validation_result_model.g.dart';
 
 @JsonSerializable()
 class ValidationResultModel extends Equatable {
+  @JsonKey(defaultValue: '')
   final String eventName;
+  @JsonKey(defaultValue: '')
   final String participantName;
+  @JsonKey(name: 'participantDocumentNumber', defaultValue: '')
   final String participantDocument;
+  @JsonKey(name: 'participantDocumentType', defaultValue: '')
   final String documentType;
-  @JsonKey(name: 'ticketStatus')
+  @JsonKey(name: 'ticketStatus', defaultValue: '')
   final String ticketStatus;
+  @JsonKey(defaultValue: '')
   final String categoryName;
   final String? ticketName;
   final int? ticketCorrelative;

@@ -72,11 +72,11 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
           participantDocumentType: ticketStatusResponse.participantDocumentType,
           participantDocumentNumber:
               ticketStatusResponse.participantDocumentNumber,
-          validatedAt: null, // No viene del backend
+          validatedAt: ticketStatusResponse.validatedAt,
           purchaseDate: ticketStatusResponse.purchaseDate,
           runnerNumber: ticketStatusResponse.runnerNumber ?? '',
-          chipId: ticketStatusResponse.chipId ?? '', // No viene del backend
-          validationCode: '', // No viene del backend
+          chipId: ticketStatusResponse.chipId ?? '',
+          validationCode: ticketStatusResponse.validationCode ?? validationCode,
           isValid: ticketStatusResponse.ticketStatus == 'valid',
         );
       } else if (response.statusCode == 404) {

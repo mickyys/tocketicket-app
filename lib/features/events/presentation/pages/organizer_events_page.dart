@@ -9,6 +9,7 @@ import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/bloc/scanner_bloc.dart';
 import '../../../scanner/domain/usecases/check_ticket_status.dart';
 import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
+import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
@@ -199,6 +200,8 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                             checkTicketStatus: context
                                 .read<CheckTicketStatus>(),
                             validateTicketQR: context.read<ValidateTicketQR>(),
+                            updateTicketRunnerData: context
+                                .read<UpdateTicketRunnerData>(),
                           ),
                           child: const ScanHistoryPage(),
                         ),
@@ -239,6 +242,8 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                             checkTicketStatus: context
                                 .read<CheckTicketStatus>(),
                             validateTicketQR: context.read<ValidateTicketQR>(),
+                            updateTicketRunnerData: context
+                                .read<UpdateTicketRunnerData>(),
                           ),
                           child: const QRScannerPage(),
                         ),
