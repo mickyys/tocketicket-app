@@ -97,6 +97,35 @@ Basados en el backend Tocket Ticket:
 - `POST /tickets/validate-qr` - Validar código QR
 - `GET /tickets/status/{code}` - Estado de ticket
 
+## 🚀 Despliegue y Distribución
+
+### 📱 TestFlight (iOS)
+La aplicación está configurada para despliegue automático en TestFlight a través de GitHub Actions:
+
+#### Build Automático
+1. Ve a **Actions** → **🍎 Build iOS**
+2. Configura:
+   - **Environment**: `prod`
+   - **Upload to TestFlight**: `true`
+3. El build se sube automáticamente a TestFlight
+
+#### Acceso a TestFlight
+- **Internal Testing**: Hasta 100 testers
+- **External Testing**: Hasta 10,000 testers (requiere revisión)
+- **Link de invitación**: [Ver TESTFLIGHT_SETUP.md](TESTFLIGHT_SETUP.md)
+
+#### Verificar Build
+- [App Store Connect](https://appstoreconnect.apple.com)
+- Sección: Tu App → TestFlight → iOS Builds
+
+### 📦 Builds de Desarrollo
+- **iOS Debug**: Disponible como artifact en GitHub Actions
+- **Android**: Configurar workflow similar (pendiente)
+
+Para configuración detallada, consulta: **[TESTFLIGHT_SETUP.md](TESTFLIGHT_SETUP.md)**
+
+---
+
 ## 🎨 Diseño
 
 ### 🎨 Paleta de Colores (Tocket Ticket Brand)

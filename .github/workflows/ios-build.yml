@@ -11,6 +11,14 @@ on:
         options:
           - dev
           - prod
+      upload_to_testflight:
+        description: 'Upload to TestFlight (Production only)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   build-ios:
@@ -97,7 +105,24 @@ jobs:
         name: tocke-${{ github.event.inputs.environment }}-ios-debug
         path: build/ios/iphoneos/Runner.app
 
-    - name: 📤 Upload IPA (Production)
+    - name: 📤 Upload to TestFlight
+      if: github.event.inputs.environment == 'prod' && github.event.inputs.upload_to_testflight == 'true'
+      id: testflight-upload
+      uses: Apple-Actions/upload-testflight-build@v1
+      with:
+        app-path: ios/build/*.ipa
+        issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+      continue-on-error: true
+
+    - name: ⚠️ TestFlight Upload Failed
+      if: github.event.inputs.environment == 'prod' && github.event.inputs.upload_to_testflight == 'true' && steps.testflight-upload.outcome == 'failure'
+      run: |
+        echo "❌ TestFlight upload failed. IPA is still available as artifact." >> $GITHUB_STEP_SUMMARY
+        echo "📝 Check the logs above for details and upload manually if needed." >> $GITHUB_STEP_SUMMARY
+
+    - name: 📤 Upload IPA Artifact (Backup)
       uses: actions/upload-artifact@v3
       if: github.event.inputs.environment == 'prod'
       with:
@@ -106,13 +131,30 @@ jobs:
 
     - name: 📊 Build Summary
       run: |
-        echo "## 🎉 iOS Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 iOS Build Completed!" >> $GITHUB_STEP_SUMMARY
         echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Platform:** iOS" >> $GITHUB_STEP_SUMMARY
         echo "- **Built at:** $(date)" >> $GITHUB_STEP_SUMMARY
         
         if [[ "${{ github.event.inputs.environment }}" == "prod" ]]; then
-          echo "- **Output:** IPA file ready for App Store" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.event.inputs.upload_to_testflight }}" == "true" ]]; then
+            if [[ "${{ steps.testflight-upload.outcome }}" == "success" ]]; then
+              echo "- **✅ TestFlight:** Build uploaded successfully ✈️" >> $GITHUB_STEP_SUMMARY
+              echo "- **⏰ Processing:** Build will be available in ~10-15 minutes" >> $GITHUB_STEP_SUMMARY
+              echo "- **🔗 Check Status:** [App Store Connect](https://appstoreconnect.apple.com)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **⚠️ TestFlight:** Upload failed, check logs above" >> $GITHUB_STEP_SUMMARY
+              echo "- **💾 Backup:** IPA available as artifact for manual upload" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- **💾 Output:** IPA file ready for manual upload" >> $GITHUB_STEP_SUMMARY
+            echo "- **📖 Guide:** See TESTFLIGHT_SETUP.md for manual upload steps" >> $GITHUB_STEP_SUMMARY
+          fi
         else
-          echo "- **Output:** Debug build for development" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔧 Output:** Debug build for development" >> $GITHUB_STEP_SUMMARY
         fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 App Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bundle ID:** cl.tocketicket.staffscanner" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Tool:** Flutter $(flutter --version | head -n 1 | cut -d ' ' -f 2)" >> $GITHUB_STEP_SUMMARY
