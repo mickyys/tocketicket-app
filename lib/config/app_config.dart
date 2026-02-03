@@ -1,4 +1,4 @@
-enum Environment { dev, prod }
+enum Environment { local, dev, prod }
 
 class AppConfig {
   static Environment _environment = Environment.dev;
@@ -11,6 +11,9 @@ class AppConfig {
 
   static void setEnvironment() {
     switch (_envString.toLowerCase()) {
+      case 'local':
+        _environment = Environment.local;
+        break;
       case 'prod':
       case 'production':
         _environment = Environment.prod;
@@ -26,6 +29,8 @@ class AppConfig {
   // URLs base según el entorno
   static String get baseUrl {
     switch (_environment) {
+      case Environment.local:
+        return 'http://localhost:8080';
       case Environment.dev:
         return 'https://api-dev.tocketicket.cl';
       case Environment.prod:
@@ -34,22 +39,28 @@ class AppConfig {
   }
 
   // Configuraciones específicas por entorno
-  static bool get isDebug => _environment == Environment.dev;
-  static bool get enableLogging => _environment == Environment.dev;
+  static bool get isDebug =>
+      _environment == Environment.local || _environment == Environment.dev;
+  static bool get enableLogging =>
+      _environment == Environment.local || _environment == Environment.dev;
   static bool get enableAnalytics => _environment == Environment.prod;
 
   // Configuración de la aplicación
   static String get appName {
     switch (_environment) {
+      case Environment.local:
+        return 'Tocke Staff Local';
       case Environment.dev:
-        return 'Staff Scanner Dev';
+        return 'Tocke Staff Dev';
       case Environment.prod:
-        return 'Staff Scanner';
+        return 'Tocke Staff';
     }
   }
 
   static String get packageName {
     switch (_environment) {
+      case Environment.local:
+        return 'cl.tocketicket.staffscanner.local';
       case Environment.dev:
         return 'cl.tocketicket.staffscanner.dev';
       case Environment.prod:
@@ -69,6 +80,8 @@ class AppConfig {
   // Timeouts de red
   static Duration get connectionTimeout {
     switch (_environment) {
+      case Environment.local:
+        return const Duration(seconds: 60);
       case Environment.dev:
         return const Duration(seconds: 30);
       case Environment.prod:
@@ -78,6 +91,8 @@ class AppConfig {
 
   static Duration get receiveTimeout {
     switch (_environment) {
+      case Environment.local:
+        return const Duration(seconds: 60);
       case Environment.dev:
         return const Duration(seconds: 30);
       case Environment.prod:
@@ -88,6 +103,8 @@ class AppConfig {
   // Configuración de base de datos
   static String get databaseName {
     switch (_environment) {
+      case Environment.local:
+        return 'staffscanner_local.db';
       case Environment.dev:
         return 'staffscanner_dev.db';
       case Environment.prod:
@@ -109,7 +126,7 @@ class AppConfig {
 
   // Método para imprimir configuración (solo en desarrollo)
   static void printConfig() {
-    if (_environment == Environment.dev) {
+    if (_environment == Environment.local || _environment == Environment.dev) {
       print('=== APP CONFIGURATION ===');
       print('Environment: ${_environment.name}');
       print('Base URL: $baseUrl');
@@ -124,4 +141,4 @@ class AppConfig {
   }
 }
 
-  // Test build triggered at: 2025-11-02 22:35:59
+// Test build triggered at: 2025-11-02 22:35:59

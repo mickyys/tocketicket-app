@@ -2,18 +2,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/logger.dart';
 import '../../domain/usecases/check_ticket_status.dart';
 import '../../domain/usecases/validate_ticket_qr.dart';
+import '../../domain/usecases/update_ticket_runner_data.dart';
 import 'scanner_event.dart';
 import 'scanner_state.dart';
 
 class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
   final CheckTicketStatus checkTicketStatus;
   final ValidateTicketQR validateTicketQR;
+  final UpdateTicketRunnerData updateTicketRunnerData;
 
-  ScannerBloc({required this.checkTicketStatus, required this.validateTicketQR})
-    : super(ScannerInitial()) {
+  ScannerBloc({
+    required this.checkTicketStatus,
+    required this.validateTicketQR,
+    required this.updateTicketRunnerData,
+  }) : super(ScannerInitial()) {
     on<ScanQRCode>(_onScanQRCode);
     on<CheckTicketStatusEvent>(_onCheckTicketStatus);
     on<ConfirmValidationEvent>(_onConfirmValidation);
+    on<UpdateRunnerDataEvent>(_onUpdateRunnerData);
     on<ClearResultEvent>(_onClearResult);
     on<ResetScannerEvent>(_onResetScanner);
   }
@@ -109,6 +115,42 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       );
     } catch (e) {
       AppLogger.error('Error en validación: $e');
+      emit(ScannerError('Error inesperado: $e'));
+    }
+  }
+
+  Future<void> _onUpdateRunnerData(
+    UpdateRunnerDataEvent event,
+    Emitter<ScannerState> emit,
+  ) async {
+    try {
+      AppLogger.info(
+        'Actualizando datos del corredor: ${event.validationCode}, número: ${event.runnerNumber}, chip: ${event.chipId}',
+      );
+      emit(SavingRunnerData(event.validationCode));
+
+      final result = await updateTicketRunnerData(
+        UpdateTicketRunnerDataParams(
+          validationCode: event.validationCode,
+          runnerNumber: event.runnerNumber,
+          chipId: event.chipId,
+        ),
+      );
+
+      result.fold(
+        (failure) {
+          AppLogger.error(
+            'Error actualizando datos del corredor: ${failure.toString()}',
+          );
+          emit(ScannerError('Error guardando datos: ${failure.toString()}'));
+        },
+        (validationResult) {
+          AppLogger.info('Datos del corredor actualizados exitosamente');
+          emit(RunnerDataSaved(validationResult));
+        },
+      );
+    } catch (e) {
+      AppLogger.error('Error en actualización: $e');
       emit(ScannerError('Error inesperado: $e'));
     }
   }

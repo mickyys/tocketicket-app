@@ -12,8 +12,8 @@ class AppConstants {
   //
   // Para encontrar tu IP local, ejecuta en terminal: ifconfig | grep "inet "
 
-  static const String _localNetworkUrl = 'https://api.dev.tocketicket.com';
-  static const String _productionUrl = 'https://api.tocketicket.com';
+  static const String _localNetworkUrl = 'http://localhost:8080';
+  static const String _productionUrl = 'http://localhost:8000';
 
   // URL base actual - configurada para iOS y dispositivos físicos
   static const String baseUrl = _localNetworkUrl;

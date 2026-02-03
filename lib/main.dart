@@ -14,7 +14,7 @@ import 'core/services/auth_service.dart';
 import 'core/services/crashlytics_service.dart';
 import 'core/di/dependency_injection.dart';
 import 'features/auth/presentation/pages/login_page.dart';
-import 'features/events/presentation/pages/organizer_events_page.dart';
+import 'features/home/presentation/pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,9 +45,9 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF0a0a0a),
+      systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
 
@@ -68,7 +68,7 @@ class TocketValidatorApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.dark,
         home: const SplashScreen(),
       ),
     );
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         Widget nextPage;
         if (isLoggedIn) {
-          nextPage = const OrganizerEventsPage();
+          nextPage = const HomePage();
         } else {
           nextPage = const LoginPage();
         }

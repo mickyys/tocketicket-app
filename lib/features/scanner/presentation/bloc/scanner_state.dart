@@ -73,3 +73,23 @@ class TicketNotFound extends ScannerState {
   @override
   List<Object> get props => [validationCode];
 }
+
+/// Estado guardando datos del corredor
+class SavingRunnerData extends ScannerState {
+  final String validationCode;
+
+  const SavingRunnerData(this.validationCode);
+
+  @override
+  List<Object> get props => [validationCode];
+}
+
+/// Estado de datos del corredor guardados exitosamente
+class RunnerDataSaved extends ScannerState {
+  final ValidationResult result;
+
+  const RunnerDataSaved(this.result);
+
+  @override
+  List<Object> get props => [result];
+}

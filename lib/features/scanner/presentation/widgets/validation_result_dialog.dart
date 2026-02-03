@@ -62,7 +62,10 @@ class ValidationResultDialog extends StatelessWidget {
           const SizedBox(height: 16),
           _buildInfoRow('Participante', result.participantName),
           const SizedBox(height: 8),
-          _buildInfoRow('RUT', result.participantRut),
+          _buildInfoRow(
+            result.participantDocumentType ?? 'RUT',
+            result.participantDocumentNumber ?? '',
+          ),
           const SizedBox(height: 8),
           _buildInfoRow('Evento', result.eventName),
           const SizedBox(height: 8),

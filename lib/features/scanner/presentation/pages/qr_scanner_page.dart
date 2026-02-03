@@ -6,12 +6,16 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/read_history_service.dart';
 import '../../domain/entities/validation_result.dart';
+import '../../domain/entities/read_record.dart';
 import '../../domain/usecases/check_ticket_status.dart';
 import '../../domain/usecases/validate_ticket_qr.dart';
+import '../../domain/usecases/update_ticket_runner_data.dart';
 import '../bloc/scanner_bloc.dart';
 import '../bloc/scanner_event.dart';
 import '../bloc/scanner_state.dart';
+import '../widgets/ticket_status_card.dart';
 
 class QRScannerPage extends StatelessWidget {
   const QRScannerPage({super.key});
@@ -22,6 +26,7 @@ class QRScannerPage extends StatelessWidget {
       create: (context) => ScannerBloc(
         checkTicketStatus: context.read<CheckTicketStatus>(),
         validateTicketQR: context.read<ValidateTicketQR>(),
+        updateTicketRunnerData: context.read<UpdateTicketRunnerData>(),
       ),
       child: const QRScannerView(),
     );
@@ -40,11 +45,32 @@ class _QRScannerViewState extends State<QRScannerView> {
   bool _isScanning = true;
   DateTime? _lastScanTime;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  late ScannerBloc _scannerBloc;
+  bool _audioInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _initializeScanner();
+    _initializeAudio();
+  }
+
+  Future<void> _initializeAudio() async {
+    try {
+      // Configurar el audio player para iOS/macOS
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+      _audioInitialized = true;
+    } catch (e) {
+      // Ignorar errores de inicialización de audio
+      debugPrint('Error initializing audio: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scannerBloc = context.read<ScannerBloc>();
   }
 
   @override
@@ -121,18 +147,22 @@ class _QRScannerViewState extends State<QRScannerView> {
         _vibrate();
 
         // Procesar el código
-        context.read<ScannerBloc>().add(ScanQRCode(code));
+        _scannerBloc.add(ScanQRCode(code));
       }
     }
   }
 
   Future<void> _playSound(String soundPath) async {
+    if (!_audioInitialized) return;
     try {
-      await _audioPlayer.play(
-        AssetSource(soundPath.replaceFirst('assets/', '')),
-      );
+      // Detener cualquier reproducción anterior
+      await _audioPlayer.stop();
+      // Usar la ruta sin 'assets/' para AssetSource
+      final source = AssetSource(soundPath.replaceFirst('assets/', ''));
+      await _audioPlayer.play(source);
     } catch (e) {
-      // Ignorar errores de audio
+      // Ignorar errores de audio - no son críticos para la funcionalidad
+      debugPrint('Error playing sound: $e');
     }
   }
 
@@ -152,6 +182,49 @@ class _QRScannerViewState extends State<QRScannerView> {
       _isScanning = true;
       _lastScanTime = null;
     });
+  }
+
+  void _showManualCodeDialog() {
+    final TextEditingController codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ingresar Código Manualmente'),
+        content: TextField(
+          controller: codeController,
+          decoration: InputDecoration(
+            hintText: 'Ingresa el código QR',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            prefixIcon: const Icon(Icons.qr_code),
+          ),
+          maxLines: 3,
+          minLines: 1,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final code = codeController.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.of(context).pop();
+                _playSound(AppConstants.scanSuccessSound);
+                _vibrate();
+                _scannerBloc.add(ScanQRCode(code));
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Validar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -184,7 +257,14 @@ class _QRScannerViewState extends State<QRScannerView> {
           } else if (state is TicketNotFound) {
             _showTicketNotFoundDialog(context, state.validationCode);
           } else if (state is ScannerError) {
+            // Cerrar cualquier modal abierto antes de mostrar el error
+            Navigator.of(context).popUntil((route) => route.isFirst);
             _showErrorDialog(context, state.message);
+          } else if (state is RunnerDataSaved) {
+            // Cerrar el modal y mostrar confirmación
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            _showDataSavedSnackbar(context, state.result);
+            _resetScanning();
           }
         },
         child: BlocBuilder<ScannerBloc, ScannerState>(
@@ -319,6 +399,19 @@ class _QRScannerViewState extends State<QRScannerView> {
               'Apunta la cámara hacia el código QR',
               style: TextStyle(color: AppColors.white, fontSize: 14),
             ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _showManualCodeDialog,
+              icon: const Icon(Icons.keyboard),
+              label: const Text('Ingresar Manualmente'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.white.withValues(alpha: 0.2),
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -367,50 +460,50 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   void _showValidationDialog(BuildContext context, ValidationResult result) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.info, color: AppColors.primary),
-            SizedBox(width: 8),
-            Text('Información del Ticket'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Evento: ${result.eventName}'),
-            const SizedBox(height: 8),
-            Text('Participante: ${result.participantName}'),
-            const SizedBox(height: 8),
-            Text('RUT: ${result.participantRut}'),
-            const SizedBox(height: 8),
-            Text('Categoría: ${result.categoryName}'),
-            const SizedBox(height: 8),
-            Text('Estado: ${result.ticketStatus}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetScanning();
-            },
-            child: const Text('Cerrar'),
-          ),
-          if (result.ticketStatus == 'not_validated')
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Aquí podrías agregar lógica para validar el ticket
+      isDismissible: false,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+        bloc: _scannerBloc,
+        builder: (context, state) {
+          final isSaving = state is SavingRunnerData;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.95,
+            maxChildSize: 0.98,
+            minChildSize: 0.5,
+            builder: (context, scrollController) => TicketStatusCard(
+              ticket: result,
+              runnerNumber: result.runnerNumber ?? '',
+              chipId: result.chipId ?? '',
+              isFirstTime: result.ticketStatus == 'valid',
+              isSaving: isSaving,
+              onNewScan: () {
+                Navigator.of(modalContext).pop();
                 _resetScanning();
               },
-              child: const Text('Validar'),
+              onSaveData: (runnerNumber, chipId) {
+                final validationCode = result.validationCode ?? '';
+                if (validationCode.isNotEmpty) {
+                  _scannerBloc.add(
+                    UpdateRunnerDataEvent(
+                      validationCode: validationCode,
+                      runnerNumber: runnerNumber,
+                      chipId: chipId,
+                    ),
+                  );
+                }
+                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+              },
             ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -419,42 +512,70 @@ class _QRScannerViewState extends State<QRScannerView> {
     _playSound(AppConstants.scanSuccessSound);
     _vibrate();
 
-    showDialog(
+    // Guardar en historial local
+    _saveToReadHistory(result);
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: AppColors.success),
-            SizedBox(width: 8),
-            Text('Validación Exitosa'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('El ticket ha sido validado correctamente.'),
-            const SizedBox(height: 16),
-            Text('Participante: ${result.participantName}'),
-            const SizedBox(height: 8),
-            Text('Evento: ${result.eventName}'),
-            const SizedBox(height: 8),
-            Text('Categoría: ${result.categoryName}'),
-            const SizedBox(height: 8),
-            Text('RUT: ${result.participantRut}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetScanning();
-            },
-            child: const Text('Continuar'),
-          ),
-        ],
+      isDismissible: false,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+        bloc: _scannerBloc,
+        builder: (context, state) {
+          final isSaving = state is SavingRunnerData;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.95,
+            maxChildSize: 0.98,
+            minChildSize: 0.5,
+            builder: (context, scrollController) => TicketStatusCard(
+              ticket: result,
+              runnerNumber: result.runnerNumber ?? '',
+              chipId: result.chipId ?? '',
+              isFirstTime: result.ticketStatus == 'valid',
+              isSaving: isSaving,
+              onNewScan: () {
+                Navigator.of(modalContext).pop();
+                _resetScanning();
+              },
+              onSaveData: (runnerNumber, chipId) {
+                final validationCode = result.validationCode ?? '';
+                if (validationCode.isNotEmpty) {
+                  _scannerBloc.add(
+                    UpdateRunnerDataEvent(
+                      validationCode: validationCode,
+                      runnerNumber: runnerNumber,
+                      chipId: chipId,
+                    ),
+                  );
+                }
+                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+              },
+            ),
+          );
+        },
       ),
     );
+  }
+
+  void _saveToReadHistory(ValidationResult result) {
+    final record = ReadRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      ticketId: result.validationCode ?? 'unknown',
+      participantName: result.participantName,
+      eventName: result.eventName,
+      timestamp: DateTime.now(),
+      runnerNumber: '0', // Placeholder - obtener del contexto si disponible
+      chipId: result.chipId ?? '',
+      isFirstTime: result.ticketStatus == 'valid', // Primera validación
+    );
+
+    ReadHistoryService.addRecord(record);
   }
 
   void _showTicketNotFoundDialog(BuildContext context, String validationCode) {
@@ -522,6 +643,31 @@ class _QRScannerViewState extends State<QRScannerView> {
             child: const Text('Reintentar'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDataSavedSnackbar(BuildContext context, ValidationResult result) {
+    _playSound(AppConstants.scanSuccessSound);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Datos guardados para ${result.participantName}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

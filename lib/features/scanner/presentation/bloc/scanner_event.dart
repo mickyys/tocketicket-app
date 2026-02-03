@@ -37,6 +37,22 @@ class ConfirmValidationEvent extends ScannerEvent {
   List<Object> get props => [validationCode];
 }
 
+/// Evento para actualizar datos del corredor (número y chip)
+class UpdateRunnerDataEvent extends ScannerEvent {
+  final String validationCode;
+  final String runnerNumber;
+  final String chipId;
+
+  const UpdateRunnerDataEvent({
+    required this.validationCode,
+    required this.runnerNumber,
+    required this.chipId,
+  });
+
+  @override
+  List<Object> get props => [validationCode, runnerNumber, chipId];
+}
+
 /// Evento para limpiar el resultado
 class ClearResultEvent extends ScannerEvent {}
 
