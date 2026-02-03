@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.1+2
 
 environment:
-  sdk: ^3.5.0  # Compatible con tu versión actual de Dart SDK
+  sdk: '>=3.0.0 <4.0.0'  # Compatible con Flutter 3.24.0 y versiones superiores
 
 dependencies:
   flutter:
