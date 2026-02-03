@@ -30,9 +30,7 @@ class CrashlyticsService {
   }
 
   /// Registra errores de Flutter - Temporalmente deshabilitado
-  static Future<void> recordFlutterError(
-    dynamic errorDetails,
-  ) async {
+  static Future<void> recordFlutterError(dynamic errorDetails) async {
     if (kDebugMode) {
       print('CrashlyticsService.recordFlutterError: $errorDetails');
     }
@@ -67,7 +65,9 @@ class CrashlyticsService {
     String? name,
   }) async {
     if (kDebugMode) {
-      print('CrashlyticsService.setUserInfo - id: $id, userId: $userId, email: $email, name: $name');
+      print(
+        'CrashlyticsService.setUserInfo - id: $id, userId: $userId, email: $email, name: $name',
+      );
     }
   }
 
@@ -77,7 +77,9 @@ class CrashlyticsService {
     Map<String, Object>? parameters,
   ) async {
     if (kDebugMode) {
-      print('CrashlyticsService.recordCustomEvent: $eventName with parameters: $parameters');
+      print(
+        'CrashlyticsService.recordCustomEvent: $eventName with parameters: $parameters',
+      );
     }
   }
 

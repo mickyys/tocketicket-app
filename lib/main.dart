@@ -11,7 +11,7 @@ import 'core/constants/app_constants.dart';
 import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/crashlytics_service.dart';  // Reactivado con implementación stub
+import 'core/services/crashlytics_service.dart'; // Reactivado con implementación stub
 import 'core/di/dependency_injection.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
