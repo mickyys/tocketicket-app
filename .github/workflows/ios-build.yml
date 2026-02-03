@@ -99,7 +99,7 @@ jobs:
                    -exportArchive
 
     - name: 📤 Upload iOS Debug Build (Dev)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: github.event.inputs.environment == 'dev'
       with:
         name: tocke-${{ github.event.inputs.environment }}-ios-debug
@@ -123,7 +123,7 @@ jobs:
         echo "📝 Check the logs above for details and upload manually if needed." >> $GITHUB_STEP_SUMMARY
 
     - name: 📤 Upload IPA Artifact (Backup)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: github.event.inputs.environment == 'prod'
       with:
         name: tocke-${{ github.event.inputs.environment }}-ipa
