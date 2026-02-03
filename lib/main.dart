@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'firebase_options.dart';
+// import 'package:firebase_core/firebase_core.dart';  // Temporalmente comentado
+// import 'package:firebase_crashlytics/firebase_crashlytics.dart';  // Temporalmente comentado
+// import 'firebase_options.dart';  // Temporalmente comentado
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/crashlytics_service.dart';
+import 'core/services/crashlytics_service.dart'; // Reactivado con implementación stub
 import 'core/di/dependency_injection.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
@@ -19,16 +19,16 @@ import 'features/home/presentation/pages/home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Inicializar Firebase - Temporalmente comentado
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Inicializar Crashlytics
+  // Inicializar Crashlytics - Temporalmente comentado
   await CrashlyticsService.initialize();
 
-  // Configurar Crashlytics para capturar errores de Flutter
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-  };
+  // Configurar Crashlytics para capturar errores de Flutter - Temporalmente comentado
+  // FlutterError.onError = (errorDetails) {
+  //   FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  // };
 
   // Configurar entorno
   AppConfig.setEnvironment();
