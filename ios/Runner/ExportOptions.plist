@@ -21,9 +21,17 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>cl.tocketicket.staffscanner</key>
-        <string>Staff Scanner Production</string>
+        <string>Tocke Scanner Production</string>
         <key>cl.tocketicket.staffscanner.dev</key>
-        <string>Staff Scanner Development</string>
+        <string>Tocke Scanner Development</string>
     </dict>
+    <key>CLIENT_ID</key>
+	<string>1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>cl.tocketicket.staffscanner</string>
 </dict>
 </plist>

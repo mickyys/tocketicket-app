@@ -8,9 +8,11 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/constants/app_colors.dart';
 import 'core/storage/database_helper.dart';
 import 'core/utils/logger.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/google_sign_in_service.dart'; // Reactivado
 import 'core/services/crashlytics_service.dart'; // Reactivado con implementación stub
 import 'core/di/dependency_injection.dart';
 import 'features/auth/presentation/pages/login_page.dart';
@@ -24,6 +26,13 @@ void main() async {
 
   // Inicializar Crashlytics - Temporalmente comentado
   await CrashlyticsService.initialize();
+
+  // Inicializar Google Sign-In con credenciales reales
+  GoogleSignInService.configure(
+    scopes: ['email', 'profile'],
+    clientId:
+        '1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f.apps.googleusercontent.com',
+  );
 
   // Configurar Crashlytics para capturar errores de Flutter - Temporalmente comentado
   // FlutterError.onError = (errorDetails) {
@@ -121,30 +130,39 @@ class _SplashScreenState extends State<SplashScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF6C63FF), Color(0xFF5A52E8)],
+                colors: [Color(0xFF0a0a0a), Color(0xFF1a1a1a)],
               ),
             ),
-            child: const Column(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.qr_code_scanner, size: 120, color: Colors.white),
-                SizedBox(height: 24),
-                Text(
-                  'Tocke Validator',
+                // Logo
+                Image.asset(
+                  'assets/images/logo.jpg',
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Tocke Validador',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.primary,
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'Validador de entradas QR',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                SizedBox(height: 48),
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                const SizedBox(height: 48),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               ],
             ),

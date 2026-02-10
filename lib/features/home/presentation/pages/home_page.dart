@@ -17,10 +17,12 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => EventBloc(
-        synchronizeEventAttendees: context.read<SynchronizeEventAttendees>(),
-        getEvents: context.read<GetEvents>(),
-      )..add(FetchEvents()),
+      create:
+          (context) => EventBloc(
+            synchronizeEventAttendees:
+                context.read<SynchronizeEventAttendees>(),
+            getEvents: context.read<GetEvents>(),
+          )..add(FetchEvents()),
       child: const _HomePageContent(),
     );
   }
@@ -95,22 +97,14 @@ class _HomePageContentState extends State<_HomePageContent> {
         elevation: 0,
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.qr_code, color: Colors.white, size: 24),
-            ),
+            Image.asset('assets/images/logo.jpg', height: 32),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Tocket',
+                  'Tocke',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -118,7 +112,7 @@ class _HomePageContentState extends State<_HomePageContent> {
                   ),
                 ),
                 Text(
-                  'Validator',
+                  'Validador',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,

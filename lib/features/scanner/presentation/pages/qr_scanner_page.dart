@@ -23,11 +23,12 @@ class QRScannerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ScannerBloc(
-        checkTicketStatus: context.read<CheckTicketStatus>(),
-        validateTicketQR: context.read<ValidateTicketQR>(),
-        updateTicketRunnerData: context.read<UpdateTicketRunnerData>(),
-      ),
+      create:
+          (context) => ScannerBloc(
+            checkTicketStatus: context.read<CheckTicketStatus>(),
+            validateTicketQR: context.read<ValidateTicketQR>(),
+            updateTicketRunnerData: context.read<UpdateTicketRunnerData>(),
+          ),
       child: const QRScannerView(),
     );
   }
@@ -81,7 +82,24 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   Future<void> _initializeScanner() async {
-    final permissionStatus = await Permission.camera.request();
+    // Primero verificar el estado actual del permiso
+    final currentStatus = await Permission.camera.status;
+
+    PermissionStatus permissionStatus;
+
+    if (currentStatus.isDenied) {
+      // Si está denegado, pedir el permiso
+      permissionStatus = await Permission.camera.request();
+    } else if (currentStatus.isPermanentlyDenied) {
+      // Si está permanentemente denegado, mostrar diálogo
+      if (mounted) {
+        _showPermissionDialog();
+      }
+      return;
+    } else {
+      // Si ya está concedido o en otro estado, usar el estado actual
+      permissionStatus = currentStatus;
+    }
 
     if (permissionStatus.isGranted) {
       _scannerController = MobileScannerController(
@@ -90,35 +108,34 @@ class _QRScannerViewState extends State<QRScannerView> {
         torchEnabled: false,
       );
       setState(() {});
-    } else {
-      if (mounted) {
-        _showPermissionDialog();
-      }
+    } else if (permissionStatus.isDenied && mounted) {
+      _showPermissionDialog();
     }
   }
 
   void _showPermissionDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Permiso de Cámara'),
-        content: const Text(
-          'Esta aplicación necesita acceso a la cámara para escanear códigos QR.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Permiso de Cámara'),
+            content: const Text(
+              'Esta aplicación necesita acceso a la cámara para escanear códigos QR.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  openAppSettings();
+                },
+                child: const Text('Configuración'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              openAppSettings();
-            },
-            child: const Text('Configuración'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -189,41 +206,44 @@ class _QRScannerViewState extends State<QRScannerView> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ingresar Código Manualmente'),
-        content: TextField(
-          controller: codeController,
-          decoration: InputDecoration(
-            hintText: 'Ingresa el código QR',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            prefixIcon: const Icon(Icons.qr_code),
-          ),
-          maxLines: 3,
-          minLines: 1,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final code = codeController.text.trim();
-              if (code.isNotEmpty) {
-                Navigator.of(context).pop();
-                _playSound(AppConstants.scanSuccessSound);
-                _vibrate();
-                _scannerBloc.add(ScanQRCode(code));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Ingresar Código Manualmente'),
+            content: TextField(
+              controller: codeController,
+              decoration: InputDecoration(
+                hintText: 'Ingresa el código QR',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.qr_code),
+              ),
+              maxLines: 3,
+              minLines: 1,
             ),
-            child: const Text('Validar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final code = codeController.text.trim();
+                  if (code.isNotEmpty) {
+                    Navigator.of(context).pop();
+                    _playSound(AppConstants.scanSuccessSound);
+                    _vibrate();
+                    _scannerBloc.add(ScanQRCode(code));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                ),
+                child: const Text('Validar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -469,42 +489,44 @@ class _QRScannerViewState extends State<QRScannerView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
-        bloc: _scannerBloc,
-        builder: (context, state) {
-          final isSaving = state is SavingRunnerData;
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.95,
-            maxChildSize: 0.98,
-            minChildSize: 0.5,
-            builder: (context, scrollController) => TicketStatusCard(
-              ticket: result,
-              runnerNumber: result.runnerNumber ?? '',
-              chipId: result.chipId ?? '',
-              isFirstTime: result.ticketStatus == 'valid',
-              isSaving: isSaving,
-              onNewScan: () {
-                Navigator.of(modalContext).pop();
-                _resetScanning();
-              },
-              onSaveData: (runnerNumber, chipId) {
-                final validationCode = result.validationCode ?? '';
-                if (validationCode.isNotEmpty) {
-                  _scannerBloc.add(
-                    UpdateRunnerDataEvent(
-                      validationCode: validationCode,
-                      runnerNumber: runnerNumber,
-                      chipId: chipId,
+      builder:
+          (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+            bloc: _scannerBloc,
+            builder: (context, state) {
+              final isSaving = state is SavingRunnerData;
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.95,
+                maxChildSize: 0.98,
+                minChildSize: 0.5,
+                builder:
+                    (context, scrollController) => TicketStatusCard(
+                      ticket: result,
+                      runnerNumber: result.runnerNumber ?? '',
+                      chipId: result.chipId ?? '',
+                      isFirstTime: result.ticketStatus == 'valid',
+                      isSaving: isSaving,
+                      onNewScan: () {
+                        Navigator.of(modalContext).pop();
+                        _resetScanning();
+                      },
+                      onSaveData: (runnerNumber, chipId) {
+                        final validationCode = result.validationCode ?? '';
+                        if (validationCode.isNotEmpty) {
+                          _scannerBloc.add(
+                            UpdateRunnerDataEvent(
+                              validationCode: validationCode,
+                              runnerNumber: runnerNumber,
+                              chipId: chipId,
+                            ),
+                          );
+                        }
+                        // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+                      },
                     ),
-                  );
-                }
-                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
-              },
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
     );
   }
 
@@ -524,42 +546,44 @@ class _QRScannerViewState extends State<QRScannerView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
-        bloc: _scannerBloc,
-        builder: (context, state) {
-          final isSaving = state is SavingRunnerData;
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.95,
-            maxChildSize: 0.98,
-            minChildSize: 0.5,
-            builder: (context, scrollController) => TicketStatusCard(
-              ticket: result,
-              runnerNumber: result.runnerNumber ?? '',
-              chipId: result.chipId ?? '',
-              isFirstTime: result.ticketStatus == 'valid',
-              isSaving: isSaving,
-              onNewScan: () {
-                Navigator.of(modalContext).pop();
-                _resetScanning();
-              },
-              onSaveData: (runnerNumber, chipId) {
-                final validationCode = result.validationCode ?? '';
-                if (validationCode.isNotEmpty) {
-                  _scannerBloc.add(
-                    UpdateRunnerDataEvent(
-                      validationCode: validationCode,
-                      runnerNumber: runnerNumber,
-                      chipId: chipId,
+      builder:
+          (modalContext) => BlocBuilder<ScannerBloc, ScannerState>(
+            bloc: _scannerBloc,
+            builder: (context, state) {
+              final isSaving = state is SavingRunnerData;
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.95,
+                maxChildSize: 0.98,
+                minChildSize: 0.5,
+                builder:
+                    (context, scrollController) => TicketStatusCard(
+                      ticket: result,
+                      runnerNumber: result.runnerNumber ?? '',
+                      chipId: result.chipId ?? '',
+                      isFirstTime: result.ticketStatus == 'valid',
+                      isSaving: isSaving,
+                      onNewScan: () {
+                        Navigator.of(modalContext).pop();
+                        _resetScanning();
+                      },
+                      onSaveData: (runnerNumber, chipId) {
+                        final validationCode = result.validationCode ?? '';
+                        if (validationCode.isNotEmpty) {
+                          _scannerBloc.add(
+                            UpdateRunnerDataEvent(
+                              validationCode: validationCode,
+                              runnerNumber: runnerNumber,
+                              chipId: chipId,
+                            ),
+                          );
+                        }
+                        // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
+                      },
                     ),
-                  );
-                }
-                // El modal se cerrará cuando el BlocListener reciba RunnerDataSaved
-              },
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
     );
   }
 
@@ -584,38 +608,42 @@ class _QRScannerViewState extends State<QRScannerView> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.search_off, color: AppColors.warning),
-            SizedBox(width: 8),
-            Text('Ticket No Encontrado'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('El ticket escaneado no existe en el sistema.'),
-            const SizedBox(height: 16),
-            Text('Código: $validationCode'),
-            const SizedBox(height: 16),
-            const Text(
-              'Verifica que el código QR sea válido o contacta al organizador del evento.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      builder:
+          (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.search_off, color: AppColors.warning),
+                SizedBox(width: 8),
+                Text('Ticket No Encontrado'),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetScanning();
-            },
-            child: const Text('Reintentar'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('El ticket escaneado no existe en el sistema.'),
+                const SizedBox(height: 16),
+                Text('Código: $validationCode'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Verifica que el código QR sea válido o contacta al organizador del evento.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _resetScanning();
+                },
+                child: const Text('Reintentar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -625,25 +653,26 @@ class _QRScannerViewState extends State<QRScannerView> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.error, color: AppColors.error),
-            SizedBox(width: 8),
-            Text('Error'),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetScanning();
-            },
-            child: const Text('Reintentar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error, color: AppColors.error),
+                SizedBox(width: 8),
+                Text('Error'),
+              ],
+            ),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _resetScanning();
+                },
+                child: const Text('Reintentar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

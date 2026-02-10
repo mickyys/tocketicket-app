@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script para verificar y configurar TestFlight
-echo "🚀 Verificando configuración de TestFlight para Staff Scanner"
+echo "🚀 Verificando configuración de TestFlight para Tocke Scanner"
 echo ""
 
 # Función para verificar secretos en GitHub (simulación)
@@ -64,7 +64,7 @@ show_appstore_setup() {
     echo "   - Ve a https://appstoreconnect.apple.com"
     echo "   - Users and Access → Keys → App Store Connect API"
     echo "   - Generate API Key"
-    echo "   - Name: GitHub Actions - Staff Scanner"
+    echo "   - Name: GitHub Actions - Tocke Scanner"
     echo "   - Access: Developer"
     echo ""
     echo "2. 📝 Obtener información:"
@@ -140,8 +140,8 @@ check_project_config() {
     fi
     
     if [ -f "lib/config/app_config.dart" ]; then
-        if grep -q "Staff Scanner" lib/config/app_config.dart; then
-            echo "✅ App name configurado: Staff Scanner"
+        if grep -q "Tocke Scanner" lib/config/app_config.dart; then
+            echo "✅ App name configurado: Tocke Scanner"
         else
             echo "❌ App name no configurado"
         fi

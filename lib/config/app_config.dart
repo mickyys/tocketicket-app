@@ -32,7 +32,7 @@ class AppConfig {
       case Environment.local:
         return 'http://localhost:8080';
       case Environment.dev:
-        return 'https://api-dev.tocketicket.cl';
+        return 'https://api.dev.tocketicket.cl';
       case Environment.prod:
         return 'https://api.tocketicket.cl';
     }
@@ -49,11 +49,11 @@ class AppConfig {
   static String get appName {
     switch (_environment) {
       case Environment.local:
-        return 'Tocke Staff Local';
+        return 'Tocke Scanner Local';
       case Environment.dev:
-        return 'Tocke Staff Dev';
+        return 'Tocke Scanner Dev';
       case Environment.prod:
-        return 'Tocke Staff';
+        return 'Tocke Scanner';
     }
   }
 

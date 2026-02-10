@@ -1,5 +1,4 @@
 import 'package:http/http.dart' as http;
-import '../../../../core/constants/app_constants.dart';
 
 abstract class EventRemoteDataSource {
   // El data source ahora puede ser más simple y enfocado en operaciones específicas de datos
@@ -8,7 +7,6 @@ abstract class EventRemoteDataSource {
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   final http.Client client;
-  final String baseUrl = AppConstants.baseUrl;
 
   EventRemoteDataSourceImpl({required this.client});
 

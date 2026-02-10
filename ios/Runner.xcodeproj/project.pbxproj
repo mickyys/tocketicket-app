@@ -500,7 +500,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cl.tocketicket.staffscanner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "Staff Scanner Production";
+				PROVISIONING_PROFILE_SPECIFIER = "Tocke Scanner Production";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = StaffScanner_AppStore;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -721,7 +721,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = cl.tocketicket.staffscanner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "Staff Scanner Production";
+				PROVISIONING_PROFILE_SPECIFIER = "Tocke Scanner Production";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = StaffScanner_AppStore;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

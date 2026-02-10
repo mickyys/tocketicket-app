@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:tocke/config/app_config.dart';
+import 'package:tocke/core/constants/app_constants.dart';
 import '../utils/logger.dart';
-import '../constants/app_constants.dart';
 import '../utils/http_header_utils.dart';
 import 'auth_service.dart';
 import '../../features/events/data/models/attendee_model.dart';
@@ -9,7 +10,7 @@ import '../../features/events/data/models/event_model.dart';
 
 class EventService {
   final http.Client client;
-  final String baseUrl = AppConstants.baseUrl;
+  String get baseUrl => AppConfig.baseUrl;
 
   EventService({required this.client});
 
@@ -52,9 +53,10 @@ class EventService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         AppLogger.info('Attendees fetched successfully: ${data['data']}');
-        final attendees = (data['data'] as List)
-            .map((item) => AttendeeModel.fromJson(item))
-            .toList();
+        final attendees =
+            (data['data'] as List)
+                .map((item) => AttendeeModel.fromJson(item))
+                .toList();
         allAttendees.addAll(attendees);
 
         if (currentPage == 1) {

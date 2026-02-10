@@ -1,69 +1,52 @@
+import 'package:tocke/config/app_config.dart';
+
 class AppConstants {
   // App Information
-  static const String appName = 'Tocke Validator';
+  static const String appName = 'Tocke Ticket';
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  // IMPORTANTES: Endpoints para desarrollo local según plataforma:
-  //
-  // 🖥️  Web/macOS: http://localhost:8000
-  // 🤖 Android Emulator: http://10.0.2.2:8000
-  // 📱 iOS Simulator/Dispositivos físicos: http://[TU_IP_LOCAL]:8000
-  //
-  // Para encontrar tu IP local, ejecuta en terminal: ifconfig | grep "inet "
-
-  static const String _localNetworkUrl = 'http://localhost:8080';
-  static const String _productionUrl = 'http://localhost:8000';
-
-  // URL base actual - configurada para iOS y dispositivos físicos
-  static const String baseUrl = _localNetworkUrl;
-
   static const String apiVersion = '';
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-  // Método helper para obtener la URL según la plataforma (opcional)
-  static String getBaseUrlForPlatform() {
-    const bool isProduction = bool.fromEnvironment('dart.vm.product');
-
-    if (isProduction) {
-      return _productionUrl;
-    } else {
-      // En desarrollo, usa _localNetworkUrl para iOS y dispositivos físicos
-      // o _androidEmulatorUrl para emulador Android
-      return baseUrl;
-    }
-  } // Authentication Endpoints
-
-  static const String loginEndpoint = '$baseUrl/login';
-  static const String registerEndpoint = '$baseUrl/register';
-  static const String logoutEndpoint = '$baseUrl/logout';
-  static const String loginOtpEndpoint = '$baseUrl/login-otp';
-  static const String requestOtpEndpoint = '$baseUrl/request-otp';
-  static const String forgotPasswordEndpoint = '$baseUrl/forgot-password';
-  static const String resetPasswordEndpoint = '$baseUrl/reset-password';
-  static const String googleLoginEndpoint = '$baseUrl/auth/google/verify-token';
+  // Authentication Endpoints - Usando AppConfig.baseUrl dinámicamente
+  static String get loginEndpoint => '${AppConfig.baseUrl}/login';
+  static String get registerEndpoint => '${AppConfig.baseUrl}/register';
+  static String get logoutEndpoint => '${AppConfig.baseUrl}/logout';
+  static String get loginOtpEndpoint => '${AppConfig.baseUrl}/login-otp';
+  static String get requestOtpEndpoint => '${AppConfig.baseUrl}/request-otp';
+  static String get forgotPasswordEndpoint =>
+      '${AppConfig.baseUrl}/forgot-password';
+  static String get resetPasswordEndpoint =>
+      '${AppConfig.baseUrl}/reset-password';
+  static String get googleLoginEndpoint =>
+      '${AppConfig.baseUrl}/auth/google/verify-token';
 
   // Events Endpoints
-  static const String eventsEndpoint = '$baseUrl/events';
-  static const String organizerEventsEndpoint = '$baseUrl/organizer/events';
-  static const String publicEventEndpoint = '$baseUrl/public/events';
+  static String get eventsEndpoint => '${AppConfig.baseUrl}/events';
+  static String get organizerEventsEndpoint =>
+      '${AppConfig.baseUrl}/organizer/events';
+  static String get publicEventEndpoint => '${AppConfig.baseUrl}/public/events';
 
   // Validation Endpoints
-  static const String validateTicketEndpoint = '$baseUrl/tickets/validate-qr';
-  static const String ticketStatusEndpoint = '$baseUrl/tickets/status';
+  static String get validateTicketEndpoint =>
+      '${AppConfig.baseUrl}/tickets/validate-qr';
+  static String get ticketStatusEndpoint =>
+      '${AppConfig.baseUrl}/tickets/status';
 
   // Orders Endpoints
-  static const String ordersEndpoint = '$baseUrl/orders';
-  static const String ordersByEventEndpoint =
-      '$baseUrl/organizer/events/{eventId}/orders';
-  static const String orderByIdEndpoint = '$baseUrl/organizer/orders';
+  static String get ordersEndpoint => '${AppConfig.baseUrl}/orders';
+  static String get ordersByEventEndpoint =>
+      '${AppConfig.baseUrl}/organizer/events/{eventId}/orders';
+  static String get orderByIdEndpoint =>
+      '${AppConfig.baseUrl}/organizer/orders';
 
   // Sync Endpoints (custom for mobile app)
-  static const String syncOrdersEndpoint =
-      '$baseUrl/organizer/events/{eventId}/orders';
-  static const String syncTicketsEndpoint =
-      '$baseUrl/events/{eventId}/tickets'; // Storage Keys
+  static String get syncOrdersEndpoint =>
+      '${AppConfig.baseUrl}/organizer/events/{eventId}/orders';
+  static String get syncTicketsEndpoint =>
+      '${AppConfig.baseUrl}/events/{eventId}/tickets'; // Storage Keys
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
   static const String userDataKey = 'user_data';
