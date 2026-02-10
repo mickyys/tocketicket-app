@@ -271,10 +271,19 @@ class _QRScannerViewState extends State<QRScannerView> {
                   ? Icons.flash_on
                   : Icons.flash_off,
             ),
-            onPressed: () {
-              _scannerController?.toggleTorch();
-              setState(() {});
-            },
+            onPressed:
+                _scannerController != null
+                    ? () async {
+                      try {
+                        await _scannerController?.toggleTorch();
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      } catch (e) {
+                        debugPrint('Error toggling torch: $e');
+                      }
+                    }
+                    : null,
           ),
         ],
       ),
