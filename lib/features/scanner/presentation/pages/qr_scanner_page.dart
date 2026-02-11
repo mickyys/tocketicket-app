@@ -82,34 +82,27 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   Future<void> _initializeScanner() async {
-    // Primero verificar el estado actual del permiso
-    final currentStatus = await Permission.camera.status;
+    try {
+      // Solicitar permiso de cámara
+      final status = await Permission.camera.request();
 
-    PermissionStatus permissionStatus;
-
-    if (currentStatus.isDenied) {
-      // Si está denegado, pedir el permiso
-      permissionStatus = await Permission.camera.request();
-    } else if (currentStatus.isPermanentlyDenied) {
-      // Si está permanentemente denegado, mostrar diálogo
-      if (mounted) {
-        _showPermissionDialog();
+      if (status.isGranted) {
+        if (!mounted) return;
+        setState(() {
+          _scannerController = MobileScannerController(
+            detectionSpeed: DetectionSpeed.noDuplicates,
+            facing: CameraFacing.back,
+            torchEnabled: false,
+            formats: [BarcodeFormat.qrCode],
+          );
+        });
+      } else {
+        if (mounted) {
+          _showPermissionDialog();
+        }
       }
-      return;
-    } else {
-      // Si ya está concedido o en otro estado, usar el estado actual
-      permissionStatus = currentStatus;
-    }
-
-    if (permissionStatus.isGranted) {
-      _scannerController = MobileScannerController(
-        detectionSpeed: DetectionSpeed.noDuplicates,
-        facing: CameraFacing.back,
-        torchEnabled: false,
-      );
-      setState(() {});
-    } else if (permissionStatus.isDenied && mounted) {
-      _showPermissionDialog();
+    } catch (e) {
+      debugPrint('Error initializing scanner: $e');
     }
   }
 
@@ -320,7 +313,42 @@ class _QRScannerViewState extends State<QRScannerView> {
       );
     }
 
-    return MobileScanner(controller: _scannerController!, onDetect: _onDetect);
+    return MobileScanner(
+      controller: _scannerController!,
+      onDetect: _onDetect,
+      errorBuilder: (context, error) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Error de cámara: ${error.errorCode}',
+                style: const TextStyle(color: AppColors.textPrimary),
+              ),
+              if (error.errorDetails?.message != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    error.errorDetails!.message!,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _initializeScanner(),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildOverlay() {
