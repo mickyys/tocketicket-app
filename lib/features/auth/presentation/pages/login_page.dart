@@ -311,41 +311,6 @@ class _LoginPageState extends State<LoginPage>
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      // Backend URL Info
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.cloud_outlined,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${AppConfig.environment.name.toUpperCase()}: ${AppConfig.baseUrl}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -423,7 +388,6 @@ class _LoginPageState extends State<LoginPage>
                             fontSize: 14,
                           ),
                           tabs: const [
-                            Tab(text: 'Google'),
                             Tab(text: 'Usuario'),
                             Tab(text: 'Código'),
                           ],
@@ -437,8 +401,6 @@ class _LoginPageState extends State<LoginPage>
                         child: TabBarView(
                           controller: _tabController,
                           children: [
-                            // Google Tab
-                            _buildGoogleTab(),
                             // Credenciales Tab
                             _buildCredentialsTab(),
                             // Código Tab

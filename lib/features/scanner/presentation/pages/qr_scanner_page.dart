@@ -18,7 +18,9 @@ import '../bloc/scanner_state.dart';
 import '../widgets/ticket_status_card.dart';
 
 class QRScannerPage extends StatelessWidget {
-  const QRScannerPage({super.key});
+  final VoidCallback? onScanSaved;
+
+  const QRScannerPage({super.key, this.onScanSaved});
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +31,15 @@ class QRScannerPage extends StatelessWidget {
             validateTicketQR: context.read<ValidateTicketQR>(),
             updateTicketRunnerData: context.read<UpdateTicketRunnerData>(),
           ),
-      child: const QRScannerView(),
+      child: QRScannerView(onScanSaved: onScanSaved),
     );
   }
 }
 
 class QRScannerView extends StatefulWidget {
-  const QRScannerView({super.key});
+  final VoidCallback? onScanSaved;
+
+  const QRScannerView({super.key, this.onScanSaved});
 
   @override
   State<QRScannerView> createState() => _QRScannerViewState();
@@ -302,7 +306,11 @@ class _QRScannerViewState extends State<QRScannerView> {
           } else if (state is RunnerDataSaved) {
             // Cerrar el modal y mostrar confirmación
             Navigator.of(context).popUntil((route) => route.isFirst);
+            // Guardar en historial antes de mostrar confirmación
+            _saveToReadHistory(state.result);
             _showDataSavedSnackbar(context, state.result);
+            // Notificar al padre que se guardó un registro
+            widget.onScanSaved?.call();
             _resetScanning();
           }
         },
@@ -570,6 +578,7 @@ class _QRScannerViewState extends State<QRScannerView> {
                       isFirstTime: result.ticketStatus == 'valid',
                       isSaving: isSaving,
                       onNewScan: () {
+                        _saveToReadHistory(result);
                         Navigator.of(modalContext).pop();
                         _resetScanning();
                       },
@@ -596,9 +605,6 @@ class _QRScannerViewState extends State<QRScannerView> {
   void _showSuccessDialog(BuildContext context, ValidationResult result) {
     _playSound(AppConstants.scanSuccessSound);
     _vibrate();
-
-    // Guardar en historial local
-    _saveToReadHistory(result);
 
     showModalBottomSheet(
       context: context,
@@ -627,6 +633,7 @@ class _QRScannerViewState extends State<QRScannerView> {
                       isFirstTime: result.ticketStatus == 'valid',
                       isSaving: isSaving,
                       onNewScan: () {
+                        _saveToReadHistory(result);
                         Navigator.of(modalContext).pop();
                         _resetScanning();
                       },
@@ -651,13 +658,27 @@ class _QRScannerViewState extends State<QRScannerView> {
   }
 
   void _saveToReadHistory(ValidationResult result) {
+    // Función para capitalizar cada palabra
+    String capitalizeName(String? name) {
+      if (name == null || name.isEmpty) return '';
+      return name
+          .split(' ')
+          .map(
+            (word) =>
+                word.isEmpty
+                    ? ''
+                    : word[0].toUpperCase() + word.substring(1).toLowerCase(),
+          )
+          .join(' ');
+    }
+
     final record = ReadRecord(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       ticketId: result.validationCode ?? 'unknown',
-      participantName: result.participantName,
+      participantName: capitalizeName(result.participantName),
       eventName: result.eventName,
       timestamp: DateTime.now(),
-      runnerNumber: '0', // Placeholder - obtener del contexto si disponible
+      runnerNumber: result.runnerNumber ?? '0',
       chipId: result.chipId ?? '',
       isFirstTime: result.ticketStatus == 'valid', // Primera validación
     );

@@ -115,18 +115,21 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
   Widget build(BuildContext context) {
     String ticketName =
         (widget.ticket.ticketName == null || widget.ticket.ticketName!.isEmpty)
-        ? 'N/A'
-        : widget.ticket.ticketName!;
+            ? 'N/A'
+            : widget.ticket.ticketName!;
     String participantStatus =
         (widget.ticket.participantStatus == null ||
-            widget.ticket.participantStatus!.isEmpty)
-        ? 'N/A'
-        : (widget.ticket.participantStatus == 'active' ? 'Activo' : 'Inactivo');
-    String purchaseDateStr = widget.ticket.purchaseDate != null
-        ? _formatDateTime(widget.ticket.purchaseDate)
-        : (widget.ticket.validatedAt != null
-              ? _formatDateTime(widget.ticket.validatedAt)
-              : 'N/A');
+                widget.ticket.participantStatus!.isEmpty)
+            ? 'N/A'
+            : (widget.ticket.participantStatus == 'active'
+                ? 'Activo'
+                : 'Inactivo');
+    String purchaseDateStr =
+        widget.ticket.purchaseDate != null
+            ? _formatDateTime(widget.ticket.purchaseDate)
+            : (widget.ticket.validatedAt != null
+                ? _formatDateTime(widget.ticket.validatedAt)
+                : 'N/A');
 
     return SingleChildScrollView(
       child: Column(
@@ -154,14 +157,16 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: widget.ticket.participantStatus == 'active'
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.grey.withValues(alpha: 0.2),
+                    color:
+                        widget.ticket.participantStatus == 'active'
+                            ? Colors.green.withValues(alpha: 0.2)
+                            : Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: widget.ticket.participantStatus == 'active'
-                          ? Colors.green.withValues(alpha: 0.3)
-                          : Colors.grey.withValues(alpha: 0.3),
+                      color:
+                          widget.ticket.participantStatus == 'active'
+                              ? Colors.green.withValues(alpha: 0.3)
+                              : Colors.grey.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
@@ -171,9 +176,10 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: widget.ticket.participantStatus == 'active'
-                          ? Colors.green
-                          : Colors.grey,
+                      color:
+                          widget.ticket.participantStatus == 'active'
+                              ? Colors.green
+                              : Colors.grey,
                     ),
                   ),
                 ),
@@ -223,8 +229,8 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                     Expanded(
                       child: _buildSectionWithIcon(
                         label: 'Correlativo',
-                        value: (widget.ticket.ticketCorrelative ?? 0)
-                            .toString(),
+                        value:
+                            (widget.ticket.ticketCorrelative ?? 0).toString(),
                         icon: Icons.numbers,
                       ),
                     ),
@@ -325,24 +331,26 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: widget.isSaving
-                            ? null
-                            : () => widget.onSaveData(
-                                _runnerNumberController.text,
-                                _chipIdController.text,
-                              ),
-                        icon: widget.isSaving
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
-                                  ),
+                        onPressed:
+                            widget.isSaving || !widget.isFirstTime
+                                ? null
+                                : () => widget.onSaveData(
+                                  _runnerNumberController.text,
+                                  _chipIdController.text,
                                 ),
-                              )
-                            : const Icon(Icons.save),
+                        icon:
+                            widget.isSaving
+                                ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                                : const Icon(Icons.save),
                         label: const Text(
                           'Guardar Datos',
                           style: TextStyle(fontSize: 16),
@@ -525,9 +533,10 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isActive
-                ? Colors.green.withValues(alpha: 0.2)
-                : Colors.grey.withValues(alpha: 0.2),
+            color:
+                isActive
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.grey.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

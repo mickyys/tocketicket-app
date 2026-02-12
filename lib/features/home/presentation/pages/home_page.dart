@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/read_history_service.dart';
 import '../../../../core/widgets/index.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
@@ -38,11 +39,22 @@ class _HomePageContent extends StatefulWidget {
 class _HomePageContentState extends State<_HomePageContent> {
   int _selectedIndex = 0;
   Map<String, dynamic>? userData;
+  int _scannedCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadScannedCount();
+  }
+
+  Future<void> _loadScannedCount() async {
+    final count = await ReadHistoryService.getHistory();
+    if (mounted) {
+      setState(() {
+        _scannedCount = count.length;
+      });
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -74,15 +86,28 @@ class _HomePageContentState extends State<_HomePageContent> {
         break;
       case 1:
         // Scanner QR
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const QRScannerPage()));
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder:
+                    (context) => QRScannerPage(onScanSaved: _loadScannedCount),
+              ),
+            )
+            .then((_) {
+              // Recargar contador cuando vuelve del scanner
+              _loadScannedCount();
+            });
         break;
       case 2:
         // History
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const ScanHistoryPage()),
-        );
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(builder: (context) => const ScanHistoryPage()),
+            )
+            .then((_) {
+              // Recargar contador cuando vuelve del historial
+              _loadScannedCount();
+            });
         break;
     }
   }
@@ -195,7 +220,7 @@ class _HomePageContentState extends State<_HomePageContent> {
                     // Estadísticas rápidas
                     QuickStatsCard(
                       eventsCount: events.length,
-                      scannedCount: 0,
+                      scannedCount: _scannedCount,
                       todayCount: 0,
                     ),
                     const SizedBox(height: 24),
