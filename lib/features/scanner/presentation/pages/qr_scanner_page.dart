@@ -52,7 +52,9 @@ class _QRScannerViewState extends State<QRScannerView> {
   @override
   void initState() {
     super.initState();
-    _initializeScanner();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeScanner();
+    });
     _initializeAudio();
   }
 
@@ -83,27 +85,42 @@ class _QRScannerViewState extends State<QRScannerView> {
 
   Future<void> _initializeScanner() async {
     try {
-      // Solicitar permiso de cámara
+      debugPrint('QRScanner: Checking camera status...');
+      final currentStatus = await Permission.camera.status;
+      debugPrint('QRScanner: Current status is $currentStatus');
+
+      if (currentStatus.isGranted) {
+        _startScannerController();
+        return;
+      }
+
+      debugPrint('QRScanner: Requesting camera permission...');
       final status = await Permission.camera.request();
+      debugPrint('QRScanner: Request result: $status');
 
       if (status.isGranted) {
-        if (!mounted) return;
-        setState(() {
-          _scannerController = MobileScannerController(
-            detectionSpeed: DetectionSpeed.noDuplicates,
-            facing: CameraFacing.back,
-            torchEnabled: false,
-            formats: [BarcodeFormat.qrCode],
-          );
-        });
+        _startScannerController();
       } else {
         if (mounted) {
           _showPermissionDialog();
         }
       }
     } catch (e) {
-      debugPrint('Error initializing scanner: $e');
+      debugPrint('QRScanner: Error initializing: $e');
     }
+  }
+
+  void _startScannerController() {
+    if (!mounted) return;
+    debugPrint('QRScanner: Starting controller...');
+    setState(() {
+      _scannerController = MobileScannerController(
+        detectionSpeed: DetectionSpeed.noDuplicates,
+        facing: CameraFacing.back,
+        torchEnabled: false,
+        formats: [BarcodeFormat.qrCode],
+      );
+    });
   }
 
   void _showPermissionDialog() {
@@ -298,15 +315,24 @@ class _QRScannerViewState extends State<QRScannerView> {
 
   Widget _buildScannerView() {
     if (_scannerController == null) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.camera_alt, size: 64, color: AppColors.greyLight),
-            SizedBox(height: 16),
-            Text(
+            const Icon(Icons.camera_alt, size: 64, color: AppColors.greyLight),
+            const SizedBox(height: 16),
+            const Text(
               'Inicializando cámara...',
               style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => _initializeScanner(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+              ),
+              child: const Text('Solicitar Permisos'),
             ),
           ],
         ),
