@@ -27,25 +27,20 @@ class _LoginPageState extends State<LoginPage>
   final List<FocusNode> _codeFocusNodes = List.generate(6, (_) => FocusNode());
   bool _isLoading = false;
   bool _showCodeInput = false;
-  double _tabHeight = 120.0;
+  double _tabHeight = 300.0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
-    // Pre-rellenar en debug
-    if (DebugConfig.enableDebugMode) {
-      _emailController.text = DebugConfig.debugEmail;
-      _passwordController.text = DebugConfig.debugPassword;
-    }
   }
 
   void _handleTabChange() {
     if (!_tabController.indexIsChanging) {
       setState(() {
-        // Google = 120, Credenciales y Código = 300
-        _tabHeight = _tabController.index == 0 ? 120.0 : 300.0;
+        // Usuario = 300, Código = 300
+        _tabHeight = 300.0;
       });
     }
   }
