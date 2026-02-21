@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../core/config/debug_config.dart';
-import 'package:tocke/config/app_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
-import '../../../../core/services/google_sign_in_service.dart'; // Reactivado
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../../core/services/crashlytics_service.dart';
 
@@ -42,52 +39,6 @@ class _LoginPageState extends State<LoginPage>
         // Usuario = 300, Código = 300
         _tabHeight = 300.0;
       });
-    }
-  }
-
-  Future<void> _handleGoogleLogin() async {
-    setState(() => _isLoading = true);
-    try {
-      // Obtener el token de Google usando el servicio
-      final googleToken = await GoogleSignInService.signIn();
-
-      if (googleToken == null) {
-        // El usuario canceló o hubo un error
-        _showError('Login con Google cancelado');
-        return;
-      }
-
-      // Enviar el token al backend para verificación
-      final result = await AuthService.loginWithGoogle(
-        googleToken: googleToken,
-      );
-
-      if (mounted) {
-        if (result['success'] == true) {
-          _showSuccess('¡Bienvenido! Iniciando con Google...');
-          final userData = await AuthService.getUserData();
-          if (userData != null) {
-            await CrashlyticsService.setUserInfo(
-              id: userData['id']?.toString(),
-              email: userData['email']?.toString(),
-              name: userData['name']?.toString(),
-            );
-          }
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          }
-        } else {
-          // Cerrar sesión de Google si el backend rechaza el token
-          await GoogleSignInService.signOut();
-          _showError(result['error'] ?? 'Error al iniciar sesión con Google');
-        }
-      }
-    } catch (e) {
-      _showError('Error: ${e.toString()}');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -423,82 +374,6 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoogleTab() {
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Spacer(),
-          ElevatedButton(
-            onPressed: _isLoading ? null : _handleGoogleLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Colors.grey, width: 1),
-              ),
-              elevation: 0,
-            ),
-            child:
-                _isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.black87,
-                        ),
-                      ),
-                    )
-                    : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/icons/google_logo.png',
-                          width: 20,
-                          height: 20,
-                          errorBuilder: (context, error, stackTrace) {
-                            // Fallback SVG si la imagen no carga
-                            return SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CustomPaint(painter: GoogleLogoPainter()),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Continuar con Google',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              'Se abrirá una ventana para autenticarte',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const Spacer(),
-        ],
       ),
     );
   }

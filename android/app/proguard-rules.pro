@@ -22,3 +22,8 @@
 
 # Keep crash reporting
 -keepattributes SourceFile,LineNumberTable
+# Support for Play Store Split libraries in Flutter
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**

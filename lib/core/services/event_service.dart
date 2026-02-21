@@ -76,7 +76,7 @@ class EventService {
     final headers = await _getHeaders();
 
     final response = await client.get(
-      Uri.parse('${AppConstants.eventsEndpoint}?page=1&pageSize=50'),
+      Uri.parse('${AppConstants.organizerEventsEndpoint}?page=1&pageSize=50'),
       headers: headers,
     );
 

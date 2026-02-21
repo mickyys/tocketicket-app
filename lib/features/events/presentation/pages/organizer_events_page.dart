@@ -13,7 +13,9 @@ import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
+import '../../domain/usecases/synchronize_participants.dart';
 import '../bloc/event_bloc.dart';
+import '../pages/event_participants_page.dart';
 
 class OrganizerEventsPage extends StatelessWidget {
   const OrganizerEventsPage({super.key});
@@ -21,10 +23,13 @@ class OrganizerEventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => EventBloc(
-        synchronizeEventAttendees: context.read<SynchronizeEventAttendees>(),
-        getEvents: context.read<GetEvents>(),
-      )..add(FetchEvents()),
+      create:
+          (context) => EventBloc(
+            synchronizeEventAttendees:
+                context.read<SynchronizeEventAttendees>(),
+            getEvents: context.read<GetEvents>(),
+            synchronizeParticipants: context.read<SynchronizeParticipants>(),
+          )..add(FetchEvents()),
       child: const OrganizerEventsView(),
     );
   }
@@ -105,18 +110,19 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
               ),
               child: const Icon(Icons.more_vert),
             ),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: AppColors.error),
-                    SizedBox(width: 8),
-                    Text('Cerrar Sesión'),
-                  ],
-                ),
-              ),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text('Cerrar Sesión'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
@@ -195,16 +201,19 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => BlocProvider(
-                          create: (context) => ScannerBloc(
-                            checkTicketStatus: context
-                                .read<CheckTicketStatus>(),
-                            validateTicketQR: context.read<ValidateTicketQR>(),
-                            updateTicketRunnerData: context
-                                .read<UpdateTicketRunnerData>(),
-                          ),
-                          child: const ScanHistoryPage(),
-                        ),
+                        builder:
+                            (context) => BlocProvider(
+                              create:
+                                  (context) => ScannerBloc(
+                                    checkTicketStatus:
+                                        context.read<CheckTicketStatus>(),
+                                    validateTicketQR:
+                                        context.read<ValidateTicketQR>(),
+                                    updateTicketRunnerData:
+                                        context.read<UpdateTicketRunnerData>(),
+                                  ),
+                              child: const ScanHistoryPage(),
+                            ),
                       ),
                     );
                   },
@@ -237,16 +246,19 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => BlocProvider(
-                          create: (context) => ScannerBloc(
-                            checkTicketStatus: context
-                                .read<CheckTicketStatus>(),
-                            validateTicketQR: context.read<ValidateTicketQR>(),
-                            updateTicketRunnerData: context
-                                .read<UpdateTicketRunnerData>(),
-                          ),
-                          child: const QRScannerPage(),
-                        ),
+                        builder:
+                            (context) => BlocProvider(
+                              create:
+                                  (context) => ScannerBloc(
+                                    checkTicketStatus:
+                                        context.read<CheckTicketStatus>(),
+                                    validateTicketQR:
+                                        context.read<ValidateTicketQR>(),
+                                    updateTicketRunnerData:
+                                        context.read<UpdateTicketRunnerData>(),
+                                  ),
+                              child: const QRScannerPage(),
+                            ),
                       ),
                     );
                   },
@@ -581,9 +593,8 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
   }
 
   Widget _buildEventCard(Event event, EventState currentState) {
-    final soldPercentage = event.totalTickets > 0
-        ? event.ticketsSold / event.totalTickets
-        : 0.0;
+    final soldPercentage =
+        event.totalTickets > 0 ? event.ticketsSold / event.totalTickets : 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppConstants.margin),
@@ -602,12 +613,13 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          // TODO: Navegar a detalles del evento
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Ver detalles de: ${event.name}'),
-              backgroundColor: AppColors.info,
-              behavior: SnackBarBehavior.floating,
+          final eventBloc = context.read<EventBloc>();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EventParticipantsPage(
+                event: event,
+                eventBloc: eventBloc,
+              ),
             ),
           );
         },
@@ -756,9 +768,10 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: soldPercentage >= 0.9
-                                ? AppColors.error.withValues(alpha: 0.1)
-                                : AppColors.success.withValues(alpha: 0.1),
+                            color:
+                                soldPercentage >= 0.9
+                                    ? AppColors.error.withValues(alpha: 0.1)
+                                    : AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -766,9 +779,10 @@ class _OrganizerEventsViewState extends State<OrganizerEventsView> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: soldPercentage >= 0.9
-                                  ? AppColors.error
-                                  : AppColors.success,
+                              color:
+                                  soldPercentage >= 0.9
+                                      ? AppColors.error
+                                      : AppColors.success,
                             ),
                           ),
                         ),

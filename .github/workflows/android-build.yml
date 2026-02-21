@@ -61,11 +61,11 @@ jobs:
       if: github.event.inputs.environment == 'prod'
 
     - name: 📱 Build APK
-      run: flutter build apk --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
+      run: flutter build apk --flavor ${{ github.event.inputs.environment }} --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
       if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both'
 
     - name: 📦 Build AAB (App Bundle)
-      run: flutter build appbundle --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
+      run: flutter build appbundle --flavor ${{ github.event.inputs.environment }} --dart-define=ENVIRONMENT=${{ github.event.inputs.environment }} --release
       if: github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both'
 
     - name: 📤 Upload APK artifact
@@ -73,14 +73,14 @@ jobs:
       if: github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both'
       with:
         name: tocke-${{ github.event.inputs.environment }}-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+        path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.environment }}-release.apk
 
     - name: 📤 Upload AAB artifact
       uses: actions/upload-artifact@v3
       if: github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both'
       with:
         name: tocke-${{ github.event.inputs.environment }}-aab
-        path: build/app/outputs/bundle/release/app-release.aab
+        path: build/app/outputs/bundle/${{ github.event.inputs.environment }}Release/app-${{ github.event.inputs.environment }}-release.aab
 
     - name: 📊 Build Summary
       run: |
@@ -91,11 +91,11 @@ jobs:
         echo "- **Built at:** $(date)" >> $GITHUB_STEP_SUMMARY
         
         if [[ "${{ github.event.inputs.build_type }}" == "apk" || "${{ github.event.inputs.build_type }}" == "both" ]]; then
-          APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+          APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-${{ github.event.inputs.environment }}-release.apk | cut -f1)
           echo "- **APK Size:** $APK_SIZE" >> $GITHUB_STEP_SUMMARY
         fi
         
         if [[ "${{ github.event.inputs.build_type }}" == "aab" || "${{ github.event.inputs.build_type }}" == "both" ]]; then
-          AAB_SIZE=$(du -h build/app/outputs/bundle/release/app-release.aab | cut -f1)
+          AAB_SIZE=$(du -h build/app/outputs/bundle/${{ github.event.inputs.environment }}Release/app-${{ github.event.inputs.environment }}-release.aab | cut -f1)
           echo "- **AAB Size:** $AAB_SIZE" >> $GITHUB_STEP_SUMMARY
         fi

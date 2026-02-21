@@ -9,8 +9,10 @@ import '../../../auth/presentation/pages/login_page.dart';
 import '../../../events/presentation/bloc/event_bloc.dart';
 import '../../../events/domain/usecases/get_events.dart';
 import '../../../events/domain/usecases/synchronize_event_attendees.dart';
+import '../../../events/domain/usecases/synchronize_participants.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
+import '../../../events/presentation/pages/event_participants_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -22,6 +24,7 @@ class HomePage extends StatelessWidget {
           (context) => EventBloc(
             synchronizeEventAttendees:
                 context.read<SynchronizeEventAttendees>(),
+            synchronizeParticipants: context.read<SynchronizeParticipants>(),
             getEvents: context.read<GetEvents>(),
           )..add(FetchEvents()),
       child: const _HomePageContent(),
@@ -332,8 +335,14 @@ class _HomePageContentState extends State<_HomePageContent> {
             totalTickets: event.totalTickets,
             active: event.status == 'published',
             onTap: () {
+              final eventBloc = context.read<EventBloc>();
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const QRScannerPage()),
+                MaterialPageRoute(
+                  builder: (context) => EventParticipantsPage(
+                    event: event,
+                    eventBloc: eventBloc,
+                  ),
+                ),
               );
             },
           ),

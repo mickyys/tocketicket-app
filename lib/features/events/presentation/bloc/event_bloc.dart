@@ -1,10 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
+import '../../domain/usecases/synchronize_participants.dart';
 
 part 'event_event.dart';
 part 'event_state.dart';
@@ -12,9 +14,13 @@ part 'event_state.dart';
 class EventBloc extends Bloc<EventEvent, EventState> {
   final SynchronizeEventAttendees synchronizeEventAttendees;
   final GetEvents getEvents;
+  final SynchronizeParticipants synchronizeParticipants;
 
-  EventBloc({required this.synchronizeEventAttendees, required this.getEvents})
-    : super(EventInitial()) {
+  EventBloc({
+    required this.synchronizeEventAttendees,
+    required this.getEvents,
+    required this.synchronizeParticipants,
+  }) : super(EventInitial()) {
     on<FetchEvents>(_onFetchEvents);
     on<SynchronizeEventAttendeesEvent>(_onSynchronizeEventAttendees);
   }
@@ -40,10 +46,27 @@ class EventBloc extends Bloc<EventEvent, EventState> {
         },
         (events) {
           emit(EventLoaded(events));
+
+          // Iniciar sincronización en background para cada evento
+          _syncParticipantsInBackground(events);
         },
       );
     } catch (e) {
       emit(EventError('Error inesperado: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _syncParticipantsInBackground(List<Event> events) async {
+    final token = await AuthService.getAccessToken() ?? '';
+    if (token.isEmpty) return;
+
+    for (final event in events) {
+      try {
+        await synchronizeParticipants(event.id, token);
+      } catch (e) {
+        // Ignorar errores en sincronización de background
+        // No queremos que una falla en un evento afecte los otros
+      }
     }
   }
 
