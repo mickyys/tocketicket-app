@@ -13,7 +13,6 @@ class BottomNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     this.items = const [
-      BottomNavItem(icon: Icons.calendar_today, label: 'Eventos'),
       BottomNavItem(icon: Icons.qr_code_scanner, label: 'Escanear'),
       BottomNavItem(icon: Icons.history, label: 'Historial'),
     ],

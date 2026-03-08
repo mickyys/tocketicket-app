@@ -56,3 +56,32 @@ class SyncFailure extends EventState {
   @override
   List<Object> get props => [eventId, message];
 }
+
+class AttendeeStatusSummaryLoading extends EventState {
+  final String eventId;
+
+  const AttendeeStatusSummaryLoading(this.eventId);
+
+  @override
+  List<Object> get props => [eventId];
+}
+
+class AttendeeStatusSummaryLoaded extends EventState {
+  final String eventId;
+  final AttendeeStatusSummary summary;
+
+  const AttendeeStatusSummaryLoaded(this.eventId, this.summary);
+
+  @override
+  List<Object> get props => [eventId, summary];
+}
+
+class AttendeeStatusSummaryError extends EventState {
+  final String eventId;
+  final String message;
+
+  const AttendeeStatusSummaryError(this.eventId, this.message);
+
+  @override
+  List<Object> get props => [eventId, message];
+}

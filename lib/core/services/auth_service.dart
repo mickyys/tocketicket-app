@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../utils/http_header_utils.dart';
 import '../utils/logger.dart';
+import '../../config/app_config.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
@@ -95,6 +96,240 @@ class AuthService {
     }
   }
 
+  static Future<Map<String, dynamic>> loginWithGoogle({
+    required String googleToken,
+  }) async {
+    try {
+      AppLogger.info('Intentando login con Google');
+      AppLogger.debug(
+        'URL de Google login: ${AppConstants.googleLoginEndpoint}',
+      );
+
+      final response = await _client
+          .post(
+            Uri.parse(AppConstants.googleLoginEndpoint),
+            headers: HttpHeaderUtils.baseHeaders,
+            body: jsonEncode({'token': googleToken}),
+          )
+          .timeout(AppConstants.connectTimeout);
+
+      final responseData = jsonDecode(response.body);
+      AppLogger.info('Respuesta de Google login recibida', {
+        'status_code': response.statusCode,
+        'has_token': responseData['token'] != null,
+        'has_user': responseData['user'] != null,
+      });
+
+      if (response.statusCode == 200) {
+        AppLogger.info('Google login exitoso');
+
+        // Guardar tokens de forma segura
+        if (responseData['token'] != null) {
+          await _storage.write(
+            key: AppConstants.accessTokenKey,
+            value: responseData['token'],
+          );
+        }
+
+        if (responseData['refresh_token'] != null) {
+          await _storage.write(
+            key: AppConstants.refreshTokenKey,
+            value: responseData['refresh_token'],
+          );
+        }
+
+        // Guardar información del usuario
+        if (responseData['user'] != null) {
+          await _storage.write(
+            key: AppConstants.userDataKey,
+            value: jsonEncode(responseData['user']),
+          );
+        }
+
+        return {'success': true, 'data': responseData};
+      } else {
+        AppLogger.error('Error en Google login: ${response.statusCode}');
+
+        return {
+          'success': false,
+          'error':
+              responseData['message'] ?? 'Error al iniciar sesión con Google',
+        };
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción en Google login', e, stackTrace);
+
+      return {
+        'success': false,
+        'error': 'Error de conexión. Verifica tu internet.',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> requestOtp({
+    required String email,
+  }) async {
+    try {
+      AppLogger.info('Solicitando código OTP para: $email');
+      AppLogger.debug('URL de request OTP: ${AppConstants.requestOtpEndpoint}');
+
+      final response = await _client
+          .post(
+            Uri.parse(AppConstants.requestOtpEndpoint),
+            headers: HttpHeaderUtils.baseHeaders,
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(AppConstants.connectTimeout);
+
+      final responseData = jsonDecode(response.body);
+      AppLogger.info('Respuesta de request OTP recibida', {
+        'status_code': response.statusCode,
+        'email': email,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        AppLogger.info('Código OTP enviado exitosamente a: $email');
+        return {'success': true, 'data': responseData};
+      } else {
+        final errorMessage =
+            responseData['error'] ??
+            responseData['message'] ??
+            'Error al solicitar código OTP';
+        AppLogger.warning('Error al solicitar OTP', {
+          'status_code': response.statusCode,
+          'error': errorMessage,
+        });
+        return {'success': false, 'error': errorMessage};
+      }
+    } on http.ClientException catch (e) {
+      AppLogger.error('Error de conexión al solicitar OTP', {
+        'error': e.toString(),
+      });
+      return {
+        'success': false,
+        'error': 'Error de conexión. Por favor verifica tu internet.',
+      };
+    } catch (e) {
+      AppLogger.error('Error inesperado al solicitar OTP', {
+        'error': e.toString(),
+      });
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginWithCode({
+    required String code,
+    required String email,
+  }) async {
+    try {
+      AppLogger.info('Intentando login con código único');
+      AppLogger.debug('URL de login OTP: ${AppConstants.loginOtpEndpoint}');
+
+      final response = await _client
+          .post(
+            Uri.parse(AppConstants.loginOtpEndpoint),
+            headers: HttpHeaderUtils.baseHeaders,
+            body: jsonEncode({'otp': code, 'email': email}),
+          )
+          .timeout(AppConstants.connectTimeout);
+
+      final responseData = jsonDecode(response.body);
+      AppLogger.info('Respuesta de login con código recibida', {
+        'status_code': response.statusCode,
+        'has_token': responseData['token'] != null,
+        'has_user': responseData['user'] != null,
+      });
+
+      if (response.statusCode == 200) {
+        AppLogger.info('Login con código exitoso');
+
+        // Guardar tokens de forma segura
+        if (responseData['token'] != null) {
+          await _storage.write(
+            key: AppConstants.accessTokenKey,
+            value: responseData['token'],
+          );
+        }
+
+        if (responseData['refresh_token'] != null) {
+          await _storage.write(
+            key: AppConstants.refreshTokenKey,
+            value: responseData['refresh_token'],
+          );
+        }
+
+        // Guardar información del usuario
+        if (responseData['user'] != null) {
+          await _storage.write(
+            key: AppConstants.userDataKey,
+            value: jsonEncode(responseData['user']),
+          );
+        }
+
+        return {'success': true, 'data': responseData};
+      } else {
+        AppLogger.error('Error en login con código: ${response.statusCode}');
+
+        return {
+          'success': false,
+          'error': responseData['message'] ?? 'Código inválido',
+        };
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Excepción en login con código', e, stackTrace);
+
+      return {
+        'success': false,
+        'error': 'Error de conexión. Verifica tu internet.',
+      };
+    }
+  }
+
+  static Future<void> fetchAndSaveProfile() async {
+    try {
+      final token = await getAccessToken();
+      if (token == null) return;
+      final response = await _client
+          .get(
+            Uri.parse('${AppConfig.baseUrl}/users/profile'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(AppConstants.connectTimeout);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['organizer'] != null) {
+          await _storage.write(
+            key: AppConstants.organizerProfileKey,
+            value: jsonEncode(data['organizer']),
+          );
+        }
+        // Update user data with roles/permissions from profile
+        if (data['user'] != null) {
+          await _storage.write(
+            key: AppConstants.userDataKey,
+            value: jsonEncode(data['user']),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error fetching profile: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getOrganizerProfile() async {
+    try {
+      final data = await _storage.read(key: AppConstants.organizerProfileKey);
+      if (data != null) return jsonDecode(data);
+      return null;
+    } catch (e) {
+      AppLogger.error('Error obteniendo perfil de organizador: $e');
+      return null;
+    }
+  }
+
   static Future<bool> isLoggedIn() async {
     try {
       final token = await _storage.read(key: AppConstants.accessTokenKey);
@@ -132,6 +367,7 @@ class AuthService {
       await _storage.delete(key: AppConstants.accessTokenKey);
       await _storage.delete(key: AppConstants.refreshTokenKey);
       await _storage.delete(key: AppConstants.userDataKey);
+      await _storage.delete(key: AppConstants.organizerProfileKey);
       AppLogger.info('Logout exitoso');
     } catch (e) {
       AppLogger.error('Error en logout: $e');

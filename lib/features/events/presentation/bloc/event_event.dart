@@ -17,3 +17,12 @@ class SynchronizeEventAttendeesEvent extends EventEvent {
   @override
   List<Object> get props => [eventId];
 }
+
+class GetAttendeeStatusSummaryEvent extends EventEvent {
+  final String eventId;
+
+  const GetAttendeeStatusSummaryEvent(this.eventId);
+
+  @override
+  List<Object> get props => [eventId];
+}

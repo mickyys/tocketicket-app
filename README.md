@@ -67,6 +67,56 @@ lib/
    - Constantes de configuración
    - Manejo de errores tipificado
 
+## ▶️ Cómo Iniciar el Proyecto
+
+### Requisitos previos
+- Flutter SDK ≥ 3.35.0
+- Android SDK con emulador configurado (o dispositivo físico)
+- JDK 17 (Temurin recomendado)
+
+### 1. Instalar dependencias
+```bash
+flutter pub get
+```
+
+### 2. Verificar dispositivos disponibles
+```bash
+flutter devices
+```
+
+### 3. Ejecutar en Android
+
+**Modo debug — entorno local** (backend en `localhost:8080`):
+```bash
+flutter run --flavor dev --debug -d emulator-5554 --dart-define=ENVIRONMENT=local
+```
+
+**Modo debug — entorno dev** (backend en `api.dev.tocketicket.cl`):
+```bash
+flutter run --flavor dev --debug -d emulator-5554 --dart-define=ENVIRONMENT=dev
+```
+
+**Modo release:**
+```bash
+flutter run --flavor prod --release -d emulator-5554 --dart-define=ENVIRONMENT=prod
+```
+
+### 4. Comandos durante la ejecución (`flutter run`)
+| Tecla | Acción |
+|-------|--------|
+| `r` | Hot reload 🔥 |
+| `R` | Hot restart |
+| `q` | Detener la app |
+| `d` | Desconectar (deja la app corriendo) |
+| `h` | Ver todos los comandos disponibles |
+
+### 5. Limpiar el proyecto
+```bash
+flutter clean && flutter pub get
+```
+
+---
+
 ## 🔧 Tecnologías Utilizadas
 
 ### 📦 Dependencias Principales

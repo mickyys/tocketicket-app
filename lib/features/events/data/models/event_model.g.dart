@@ -10,8 +10,12 @@ EventModel _$EventModelFromJson(Map<String, dynamic> json) => EventModel(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
-      startDate: DateTime.parse(json['startDate'] as String),
-      endDate: DateTime.parse(json['endDate'] as String),
+      startDate: json['startDate'] == null
+          ? null
+          : DateTime.parse(json['startDate'] as String),
+      endDate: json['endDate'] == null
+          ? null
+          : DateTime.parse(json['endDate'] as String),
       location: json['location'] as String,
       address: json['address'] as String,
       imageUrl: json['imageUrl'] as String,
@@ -28,8 +32,8 @@ Map<String, dynamic> _$EventModelToJson(EventModel instance) =>
       'id': instance.id,
       'name': instance.name,
       'description': instance.description,
-      'startDate': instance.startDate.toIso8601String(),
-      'endDate': instance.endDate.toIso8601String(),
+      'startDate': instance.startDate?.toIso8601String(),
+      'endDate': instance.endDate?.toIso8601String(),
       'location': instance.location,
       'address': instance.address,
       'imageUrl': instance.imageUrl,

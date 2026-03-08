@@ -74,7 +74,7 @@ check_config() {
     fi
     
     # Verificar app config
-    if grep -q "Staff Scanner Dev" lib/config/app_config.dart; then
+    if grep -q "Tocke Scanner Dev" lib/config/app_config.dart; then
         echo "✅ App config para desarrollo configurado"
     else
         echo "❌ App config para desarrollo no configurado"
@@ -90,7 +90,7 @@ show_differences() {
     echo "🔧 Development Build:"
     echo "   App Name: Staff Scanner Dev"
     echo "   Bundle ID: cl.tocketicket.staffscanner.dev"
-    echo "   Base URL: api-dev.tocketicket.cl"
+    echo "   Base URL: api.dev.tocketicket.cl"
     echo "   Database: staffscanner_dev.db"
     echo "   Debug: enabled"
     echo "   TestFlight: Internal testers only"
@@ -117,7 +117,7 @@ simulate_workflow() {
     echo "6. 🍎 Setup App Store Connect API"
     echo "7. 🚀 Upload a TestFlight automáticamente"
     echo "8. 📧 Internal testers reciben notificación"
-    echo "9. 🧪 Testers pueden descargar Staff Scanner Dev"
+    echo "9. 🧪 Testers pueden descargar Tocke Scanner Dev"
     echo ""
     echo "⏱️  Tiempo total estimado: 10-15 minutos"
     echo ""

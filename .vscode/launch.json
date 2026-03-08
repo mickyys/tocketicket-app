@@ -2,6 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Flutter Local",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define",
+        "ENVIRONMENT=local"
+      ]
+    },
+    {
       "name": "Flutter Debug",
       "request": "launch",
       "type": "dart",

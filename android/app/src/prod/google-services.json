@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "601708044595",
+    "project_id": "tocke-staffscanner",
+    "storage_bucket": "tocke-staffscanner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601708044595:android:b659c9c0779ea5272b1e46",
+        "android_client_info": {
+          "package_name": "cl.tocketicket.staffscanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnYef9OHD0-kJOACbSNXgvY_N2yhpCHy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

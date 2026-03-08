@@ -3,6 +3,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/storage/database_helper.dart';
 import '../../../../core/services/event_service.dart';
 import '../../domain/entities/event.dart';
+import '../../domain/entities/attendee_status_summary.dart';
 import '../../domain/repositories/event_repository.dart';
 
 class EventRepositoryImpl implements EventRepository {
@@ -20,9 +21,8 @@ class EventRepositoryImpl implements EventRepository {
   ) async {
     try {
       final remoteAttendees = await eventService.fetchAllAttendees(eventId);
-      final attendeeMaps = remoteAttendees
-          .map((attendee) => attendee.toMap())
-          .toList();
+      final attendeeMaps =
+          remoteAttendees.map((attendee) => attendee.toMap()).toList();
       await databaseHelper.syncAttendees(eventId, attendeeMaps);
       return const Right(unit);
     } catch (e) {
@@ -35,6 +35,18 @@ class EventRepositoryImpl implements EventRepository {
     try {
       final remoteEvents = await eventService.getEvents();
       return Right(remoteEvents);
+    } catch (e) {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, AttendeeStatusSummary>> getAttendeeStatusSummary(
+    String eventId,
+  ) async {
+    try {
+      final summary = await eventService.getAttendeeStatusSummary(eventId);
+      return Right(summary);
     } catch (e) {
       return Left(ServerFailure());
     }
