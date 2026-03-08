@@ -20,12 +20,15 @@ ValidationResultModel _$ValidationResultModelFromJson(
   participantStatus: json['participantStatus'] as String?,
   participantDocumentType: json['participantDocumentType'] as String?,
   participantDocumentNumber: json['participantDocumentNumber'] as String?,
-  validatedAt: json['validatedAt'] == null
-      ? null
-      : DateTime.parse(json['validatedAt'] as String),
-  purchaseDate: json['purchaseDate'] == null
-      ? null
-      : DateTime.parse(json['purchaseDate'] as String),
+  validatedAt:
+      json['validatedAt'] == null
+          ? null
+          : DateTime.parse(json['validatedAt'] as String),
+  validatedByName: json['validatedByName'] as String?,
+  purchaseDate:
+      json['purchaseDate'] == null
+          ? null
+          : DateTime.parse(json['purchaseDate'] as String),
   runnerNumber: json['runnerNumber'] as String?,
   chipId: json['chipId'] as String?,
   validationCode: json['validationCode'] as String?,
@@ -47,6 +50,7 @@ Map<String, dynamic> _$ValidationResultModelToJson(
   'participantDocumentType': instance.participantDocumentType,
   'participantDocumentNumber': instance.participantDocumentNumber,
   'validatedAt': instance.validatedAt?.toIso8601String(),
+  'validatedByName': instance.validatedByName,
   'purchaseDate': instance.purchaseDate?.toIso8601String(),
   'runnerNumber': instance.runnerNumber,
   'chipId': instance.chipId,

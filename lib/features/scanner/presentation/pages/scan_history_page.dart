@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/read_history_service.dart';
@@ -11,13 +12,27 @@ class ScanHistoryPage extends StatefulWidget {
   State<ScanHistoryPage> createState() => _ScanHistoryPageState();
 }
 
-class _ScanHistoryPageState extends State<ScanHistoryPage> {
+class _ScanHistoryPageState extends State<ScanHistoryPage> with RouteAware {
   late Future<List<ReadRecord>> _historyFuture;
 
   @override
   void initState() {
     super.initState();
-    _historyFuture = ReadHistoryService.getHistory();
+    _loadHistory();
+  }
+
+  void _loadHistory() {
+    setState(() {
+      _historyFuture = ReadHistoryService.getHistory();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Suscribirse a cambios de ruta si es necesario,
+    // pero por ahora simplemente recargaremos cuando el widget sea visible o rebuilded
+    _loadHistory();
   }
 
   @override
@@ -171,10 +186,8 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               Row(
                 children: [
                   Icon(
-                    record.isFirstTime ? Icons.check_circle : Icons.update,
-                    color: record.isFirstTime
-                        ? AppColors.success
-                        : AppColors.warning,
+                    Icons.check_circle,
+                    color: record.isFirstTime ? Colors.blue : AppColors.success,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -208,27 +221,26 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                          (record.isFirstTime
-                                  ? AppColors.success
-                                  : AppColors.warning)
-                              .withValues(alpha: 0.1),
+                      color: (record.isFirstTime
+                              ? Colors.blue
+                              : AppColors.success)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color:
-                            (record.isFirstTime
-                                    ? AppColors.success
-                                    : AppColors.warning)
-                                .withValues(alpha: 0.3),
+                        color: (record.isFirstTime
+                                ? Colors.blue
+                                : AppColors.success)
+                            .withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
-                      record.isFirstTime ? 'Primera vez' : 'Actualización',
+                      record.isFirstTime ? 'Válido' : 'Validado',
                       style: TextStyle(
                         fontSize: 12,
-                        color: record.isFirstTime
-                            ? AppColors.success
-                            : AppColors.warning,
+                        color:
+                            record.isFirstTime
+                                ? Colors.blue
+                                : AppColors.success,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -312,86 +324,109 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
   void _showDetailDialog(ReadRecord record) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color:
-                    (record.isFirstTime ? AppColors.success : AppColors.warning)
-                        .withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                record.isFirstTime ? Icons.check_circle : Icons.update,
-                color: record.isFirstTime
-                    ? AppColors.success
-                    : AppColors.warning,
-                size: 20,
-              ),
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Detalles de Lectura',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
             ),
-          ],
-        ),
-        content: Container(
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                _buildDetailRow('Participante', record.participantName),
-                _buildDetailRow('Evento', record.eventName),
-                _buildDetailRow('Corredor', record.runnerNumber),
-                _buildDetailRow('Ticket ID', record.ticketId),
-                _buildDetailRow('Chip ID', record.chipId),
-                _buildDetailRow(
-                  'Tipo',
-                  record.isFirstTime ? 'Primera vez' : 'Actualización',
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (record.isFirstTime
+                            ? Colors.blue
+                            : AppColors.success)
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: record.isFirstTime ? Colors.blue : AppColors.success,
+                    size: 20,
+                  ),
                 ),
-                _buildDetailRow(
-                  'Fecha y Hora',
-                  _formatDetailDateTime(record.timestamp),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Detalles de Lectura',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow('Participante', record.participantName),
+                      _buildDetailRow('Evento', record.eventName),
+                      _buildDetailRow(
+                        'Corredor',
+                        record.runnerNumber,
+                        isCopyable: true,
+                      ),
+                      _buildDetailRow(
+                        'Ticket ID',
+                        record.ticketId,
+                        isCopyable: true,
+                      ),
+                      _buildDetailRow(
+                        'Chip ID',
+                        record.chipId,
+                        isCopyable: true,
+                      ),
+                      _buildDetailRow(
+                        'Tipo',
+                        record.isFirstTime ? 'Válido' : 'Validado',
+                      ),
+                      _buildDetailRow(
+                        'Fecha y Hora',
+                        _formatDetailDateTime(record.timestamp),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            child: const Text('Cerrar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                ),
+                child: const Text('Cerrar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    bool isCopyable = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -409,9 +444,40 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: AppColors.textPrimary),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    value,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+                if (isCopyable && value.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: value));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copiado: $value'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(
+                        Icons.copy,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -422,88 +488,89 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
   void _showClearHistoryDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.delete_sweep,
-                color: AppColors.error,
-                size: 20,
-              ),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Limpiar Historial',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.delete_sweep,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          '¿Estás seguro de que quieres eliminar todo el historial de lecturas? Esta acción no se puede deshacer.',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-            ),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await ReadHistoryService.clearHistory();
-              setState(() {
-                _historyFuture = ReadHistoryService.getHistory();
-              });
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text(
-                      'Historial limpiado',
-                      style: TextStyle(color: AppColors.white),
-                    ),
-                    backgroundColor: AppColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Limpiar Historial',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.white,
-              elevation: 2,
-              shadowColor: AppColors.shadow,
+                ),
+              ],
             ),
-            child: const Text('Eliminar'),
+            content: const Text(
+              '¿Estás seguro de que quieres eliminar todo el historial de lecturas? Esta acción no se puede deshacer.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                ),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await ReadHistoryService.clearHistory();
+                  setState(() {
+                    _historyFuture = ReadHistoryService.getHistory();
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          'Historial limpiado',
+                          style: TextStyle(color: AppColors.white),
+                        ),
+                        backgroundColor: AppColors.success,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.white,
+                  elevation: 2,
+                  shadowColor: AppColors.shadow,
+                ),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

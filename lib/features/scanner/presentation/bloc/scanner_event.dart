@@ -10,11 +10,12 @@ abstract class ScannerEvent extends Equatable {
 /// Evento para escanear un código QR
 class ScanQRCode extends ScannerEvent {
   final String qrCode;
+  final String? eventId;
 
-  const ScanQRCode(this.qrCode);
+  const ScanQRCode(this.qrCode, {this.eventId});
 
   @override
-  List<Object> get props => [qrCode];
+  List<Object> get props => [qrCode, if (eventId != null) eventId!];
 }
 
 /// Evento para consultar el estado de un ticket

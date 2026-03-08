@@ -73,6 +73,7 @@ class _LoginPageState extends State<LoginPage>
       if (mounted) {
         if (result['success'] == true) {
           _showSuccess('¡Bienvenido! Iniciando sesión...');
+          await AuthService.fetchAndSaveProfile();
           final userData = await AuthService.getUserData();
           if (userData != null) {
             await CrashlyticsService.setUserInfo(
@@ -151,6 +152,7 @@ class _LoginPageState extends State<LoginPage>
       if (mounted) {
         if (result['success'] == true) {
           _showSuccess('Código validado correctamente');
+          await AuthService.fetchAndSaveProfile();
           final userData = await AuthService.getUserData();
           if (userData != null) {
             await CrashlyticsService.setUserInfo(

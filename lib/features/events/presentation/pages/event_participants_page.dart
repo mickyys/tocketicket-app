@@ -5,6 +5,12 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../scanner/presentation/pages/qr_scanner_page.dart';
+import '../../../scanner/presentation/pages/scan_history_page.dart';
+import '../../../scanner/presentation/bloc/scanner_bloc.dart';
+import '../../../scanner/domain/usecases/check_ticket_status.dart';
+import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
+import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
@@ -319,6 +325,139 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
           }
           return _buildInitialState();
         },
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(AppConstants.padding),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Botón de historial de escaneos
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (context) => BlocProvider(
+                              create:
+                                  (context) => ScannerBloc(
+                                    checkTicketStatus:
+                                        context.read<CheckTicketStatus>(),
+                                    validateTicketQR:
+                                        context.read<ValidateTicketQR>(),
+                                    updateTicketRunnerData:
+                                        context.read<UpdateTicketRunnerData>(),
+                                  ),
+                              child: const ScanHistoryPage(),
+                            ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.history,
+                    size: 24,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Historial de escaneos',
+                ),
+              ),
+              // Botón central del escáner QR específico para este evento
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.secondary, AppColors.successDark],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (context) => BlocProvider(
+                              create:
+                                  (context) => ScannerBloc(
+                                    checkTicketStatus:
+                                        context.read<CheckTicketStatus>(),
+                                    validateTicketQR:
+                                        context.read<ValidateTicketQR>(),
+                                    updateTicketRunnerData:
+                                        context.read<UpdateTicketRunnerData>(),
+                                  ),
+                              child: QRScannerPage(
+                                eventId: widget.event.id,
+                                eventName: widget.event.name,
+                                onScanSaved: () {
+                                  _loadParticipants();
+                                },
+                              ),
+                            ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.qr_code_scanner,
+                    size: 28,
+                    color: AppColors.white,
+                  ),
+                  iconSize: 28,
+                  padding: const EdgeInsets.all(16),
+                  tooltip: 'Escanear QR de este evento',
+                ),
+              ),
+              // Botón de información/estadísticas (opcional, manteniendo el estilo)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Estadísticas del evento - Próximamente'),
+                        backgroundColor: AppColors.info,
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.analytics_outlined,
+                    size: 24,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Estadísticas del evento',
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

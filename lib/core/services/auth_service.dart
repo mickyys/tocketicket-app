@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../utils/http_header_utils.dart';
 import '../utils/logger.dart';
+import '../../config/app_config.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
@@ -284,6 +285,51 @@ class AuthService {
     }
   }
 
+  static Future<void> fetchAndSaveProfile() async {
+    try {
+      final token = await getAccessToken();
+      if (token == null) return;
+      final response = await _client
+          .get(
+            Uri.parse('${AppConfig.baseUrl}/users/profile'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(AppConstants.connectTimeout);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['organizer'] != null) {
+          await _storage.write(
+            key: AppConstants.organizerProfileKey,
+            value: jsonEncode(data['organizer']),
+          );
+        }
+        // Update user data with roles/permissions from profile
+        if (data['user'] != null) {
+          await _storage.write(
+            key: AppConstants.userDataKey,
+            value: jsonEncode(data['user']),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error fetching profile: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getOrganizerProfile() async {
+    try {
+      final data = await _storage.read(key: AppConstants.organizerProfileKey);
+      if (data != null) return jsonDecode(data);
+      return null;
+    } catch (e) {
+      AppLogger.error('Error obteniendo perfil de organizador: $e');
+      return null;
+    }
+  }
+
   static Future<bool> isLoggedIn() async {
     try {
       final token = await _storage.read(key: AppConstants.accessTokenKey);
@@ -321,6 +367,7 @@ class AuthService {
       await _storage.delete(key: AppConstants.accessTokenKey);
       await _storage.delete(key: AppConstants.refreshTokenKey);
       await _storage.delete(key: AppConstants.userDataKey);
+      await _storage.delete(key: AppConstants.organizerProfileKey);
       AppLogger.info('Logout exitoso');
     } catch (e) {
       AppLogger.error('Error en logout: $e');

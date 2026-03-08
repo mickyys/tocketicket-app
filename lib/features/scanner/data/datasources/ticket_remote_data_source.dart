@@ -73,6 +73,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
           participantDocumentNumber:
               ticketStatusResponse.participantDocumentNumber,
           validatedAt: ticketStatusResponse.validatedAt,
+          validatedByName: ticketStatusResponse.validatedByName,
           purchaseDate: ticketStatusResponse.purchaseDate,
           runnerNumber: ticketStatusResponse.runnerNumber ?? '',
           chipId: ticketStatusResponse.chipId ?? '',

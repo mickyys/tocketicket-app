@@ -24,6 +24,7 @@ class ValidationResultModel extends Equatable {
   final String? participantDocumentType;
   final String? participantDocumentNumber;
   final DateTime? validatedAt;
+  final String? validatedByName;
   final DateTime? purchaseDate;
   final String? runnerNumber;
   final String? chipId;
@@ -43,6 +44,7 @@ class ValidationResultModel extends Equatable {
     this.participantDocumentType,
     this.participantDocumentNumber,
     this.validatedAt,
+    this.validatedByName,
     this.purchaseDate,
     this.runnerNumber,
     this.chipId,
@@ -70,6 +72,7 @@ class ValidationResultModel extends Equatable {
       participantDocumentType: participantDocumentType,
       participantDocumentNumber: participantDocumentNumber,
       validatedAt: validatedAt,
+      validatedByName: validatedByName,
       purchaseDate: purchaseDate,
       runnerNumber: runnerNumber,
       chipId: chipId,
@@ -91,6 +94,7 @@ class ValidationResultModel extends Equatable {
     String? participantDocumentType,
     String? participantDocumentNumber,
     DateTime? validatedAt,
+    String? validatedByName,
     DateTime? purchaseDate,
     String? runnerNumber,
     String? chipId,
@@ -112,6 +116,7 @@ class ValidationResultModel extends Equatable {
       participantDocumentNumber:
           participantDocumentNumber ?? this.participantDocumentNumber,
       validatedAt: validatedAt ?? this.validatedAt,
+      validatedByName: validatedByName ?? this.validatedByName,
       purchaseDate: purchaseDate ?? this.purchaseDate,
       runnerNumber: runnerNumber ?? this.runnerNumber,
       chipId: chipId ?? this.chipId,
@@ -134,6 +139,7 @@ class ValidationResultModel extends Equatable {
     participantDocumentType,
     participantDocumentNumber,
     validatedAt,
+    validatedByName,
     purchaseDate,
     runnerNumber,
     chipId,

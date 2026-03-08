@@ -17,12 +17,15 @@ TicketStatusResponseModel _$TicketStatusResponseModelFromJson(
   ticketCorrelative: (json['ticketCorrelative'] as num).toInt(),
   ticketStatus: json['ticketStatus'] as String,
   ticketName: json['ticketName'] as String?,
-  purchaseDate: json['purchaseDate'] == null
-      ? null
-      : DateTime.parse(json['purchaseDate'] as String),
-  validatedAt: json['validatedAt'] == null
-      ? null
-      : DateTime.parse(json['validatedAt'] as String),
+  purchaseDate:
+      json['purchaseDate'] == null
+          ? null
+          : DateTime.parse(json['purchaseDate'] as String),
+  validatedAt:
+      json['validatedAt'] == null
+          ? null
+          : DateTime.parse(json['validatedAt'] as String),
+  validatedByName: json['validatedByName'] as String?,
   categoryName: json['categoryName'] as String?,
   runnerNumber: json['runnerNumber'] as String?,
   chipId: json['chipId'] as String?,
@@ -42,6 +45,7 @@ Map<String, dynamic> _$TicketStatusResponseModelToJson(
   'ticketName': instance.ticketName,
   'purchaseDate': instance.purchaseDate?.toIso8601String(),
   'validatedAt': instance.validatedAt?.toIso8601String(),
+  'validatedByName': instance.validatedByName,
   'categoryName': instance.categoryName,
   'runnerNumber': instance.runnerNumber,
   'chipId': instance.chipId,

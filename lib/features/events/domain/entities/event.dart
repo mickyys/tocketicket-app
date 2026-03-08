@@ -4,8 +4,8 @@ class Event extends Equatable {
   final String id;
   final String name;
   final String description;
-  final DateTime startDate;
-  final DateTime endDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final String location;
   final String address;
   final String imageUrl;
@@ -20,8 +20,8 @@ class Event extends Equatable {
     required this.id,
     required this.name,
     required this.description,
-    required this.startDate,
-    required this.endDate,
+    this.startDate,
+    this.endDate,
     required this.location,
     required this.address,
     required this.imageUrl,
@@ -35,19 +35,19 @@ class Event extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        startDate,
-        endDate,
-        location,
-        address,
-        imageUrl,
-        organizerId,
-        isActive,
-        isPublic,
-        ticketsSold,
-        totalTickets,
-        status,
-      ];
+    id,
+    name,
+    description,
+    startDate,
+    endDate,
+    location,
+    address,
+    imageUrl,
+    organizerId,
+    isActive,
+    isPublic,
+    ticketsSold,
+    totalTickets,
+    status,
+  ];
 }

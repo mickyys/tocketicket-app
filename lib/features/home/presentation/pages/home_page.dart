@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tocke/features/events/domain/usecases/get_attendee_status_summary.dart';
+import 'package:tocke/features/events/presentation/pages/event_detail_page.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/read_history_service.dart';
@@ -12,23 +14,13 @@ import '../../../events/domain/usecases/synchronize_event_attendees.dart';
 import '../../../events/domain/usecases/synchronize_participants.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
-import '../../../events/presentation/pages/event_participants_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (context) => EventBloc(
-            synchronizeEventAttendees:
-                context.read<SynchronizeEventAttendees>(),
-            synchronizeParticipants: context.read<SynchronizeParticipants>(),
-            getEvents: context.read<GetEvents>(),
-          )..add(FetchEvents()),
-      child: const _HomePageContent(),
-    );
+    return const _HomePageContent();
   }
 }
 
@@ -42,6 +34,7 @@ class _HomePageContent extends StatefulWidget {
 class _HomePageContentState extends State<_HomePageContent> {
   int _selectedIndex = 0;
   Map<String, dynamic>? userData;
+  Map<String, dynamic>? organizerProfile;
   int _scannedCount = 0;
 
   @override
@@ -62,12 +55,25 @@ class _HomePageContentState extends State<_HomePageContent> {
 
   Future<void> _loadUserData() async {
     final data = await AuthService.getUserData();
+    final profile = await AuthService.getOrganizerProfile();
     if (mounted) {
       setState(() {
         userData = data;
+        organizerProfile = profile;
       });
     }
   }
+
+  bool get _isTeamMember {
+    if (organizerProfile == null) return false;
+    final roles = (userData?['roles'] as List?)?.cast<String>() ?? [];
+    return !roles.contains('organizer') && !roles.contains('admin');
+  }
+
+  String get _organizerName =>
+      organizerProfile?['legal_name']?.toString() ??
+      organizerProfile?['name']?.toString() ??
+      'Equipo';
 
   Future<void> _handleLogout() async {
     await AuthService.logout();
@@ -119,7 +125,6 @@ class _HomePageContentState extends State<_HomePageContent> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      // Header
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -127,11 +132,11 @@ class _HomePageContentState extends State<_HomePageContent> {
           children: [
             Image.asset('assets/images/logo.jpg', height: 32),
             const SizedBox(width: 12),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Tocke',
                   style: TextStyle(
                     fontSize: 14,
@@ -140,8 +145,8 @@ class _HomePageContentState extends State<_HomePageContent> {
                   ),
                 ),
                 Text(
-                  'Validador',
-                  style: TextStyle(
+                  _isTeamMember ? _organizerName : 'Validador',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: AppColors.textSecondary,
@@ -206,11 +211,60 @@ class _HomePageContentState extends State<_HomePageContent> {
           if (state is EventLoaded) {
             final events = state.events;
 
+            if (events.isEmpty) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<EventBloc>().add(FetchEvents());
+                  await _loadScannedCount();
+                },
+                child: ListView(
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 64,
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No hay eventos disponibles',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<EventBloc>().add(FetchEvents());
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.white,
+                            ),
+                            child: const Text('Actualizar'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<EventBloc>().add(FetchEvents());
+                await _loadScannedCount();
               },
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(
                   AppConstants.padding,
                   AppConstants.padding,
@@ -270,39 +324,16 @@ class _HomePageContentState extends State<_HomePageContent> {
             );
           }
 
-          return const SizedBox.shrink();
+          context.read<EventBloc>().add(FetchEvents());
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         },
-      ),
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onNavTapped,
       ),
     );
   }
 
   Widget _buildEventsList(List events) {
-    if (events.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 48),
-            Icon(
-              Icons.event_busy,
-              size: 64,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay eventos disponibles',
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       children: List.generate(events.length, (index) {
         final event = events[index];
@@ -338,10 +369,9 @@ class _HomePageContentState extends State<_HomePageContent> {
               final eventBloc = context.read<EventBloc>();
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => EventParticipantsPage(
-                    event: event,
-                    eventBloc: eventBloc,
-                  ),
+                  builder:
+                      (context) =>
+                          EventDetailPage(event: event, eventBloc: eventBloc),
                 ),
               );
             },

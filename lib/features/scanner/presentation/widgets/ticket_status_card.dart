@@ -131,256 +131,295 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                 ? _formatDateTime(widget.ticket.validatedAt)
                 : 'N/A');
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              border: Border(
-                bottom: BorderSide(color: AppColors.border, width: 1),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Detalle del Ticket',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header Info
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.border, width: 1),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Estado de Validación',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  _buildStatusChip(widget.ticket.participantStatus == 'active'),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Estado del Ticket',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        widget.ticket.participantStatus == 'active'
-                            ? Colors.green.withValues(alpha: 0.2)
-                            : Colors.grey.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color:
-                          widget.ticket.participantStatus == 'active'
-                              ? Colors.green.withValues(alpha: 0.3)
-                              : Colors.grey.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    widget.ticket.participantStatus == 'active'
-                        ? 'Activo'
-                        : 'Inactivo',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          widget.ticket.participantStatus == 'active'
-                              ? Colors.green
-                              : Colors.grey,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Evento
-                _buildSection(label: 'Evento', value: widget.ticket.eventName),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 16),
-
-                // Información del ticket (Grid)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildSection(
-                        label: 'Nombre Ticket',
-                        value: ticketName,
-                        isBold: true,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildSection(
-                        label: 'Categoría',
-                        value: widget.ticket.categoryName,
-                        isBold: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Correlativo y Ticket ID
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildSectionWithIcon(
-                        label: 'Correlativo',
-                        value:
-                            (widget.ticket.ticketCorrelative ?? 0).toString(),
-                        icon: Icons.numbers,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildSectionWithIcon(
-                        label: 'Ticket ID',
-                        value: widget.ticket.validationCode ?? 'N/A',
-                        icon: Icons.confirmation_number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 16),
-
-                // Inputs editables
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                    ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Evento
+                  _buildSection(
+                    label: 'Evento',
+                    value: widget.ticket.eventName,
                   ),
-                  child: Column(
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  // Información del ticket (Grid)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInputField(
-                        label: 'Número de Corredor',
-                        controller: _runnerNumberController,
-                        icon: Icons.numbers,
+                      Expanded(
+                        child: _buildSection(
+                          label: 'Nombre Ticket',
+                          value: ticketName,
+                          isBold: true,
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        label: 'Chip ID',
-                        controller: _chipIdController,
-                        icon: Icons.security,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSection(
+                          label: 'Categoría',
+                          value: widget.ticket.categoryName,
+                          isBold: true,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Información del participante
-                _buildSection(
-                  label: 'Participante',
-                  value: widget.ticket.participantName,
-                  icon: Icons.person,
-                  isBold: true,
-                ),
-                const SizedBox(height: 12),
-
-                _buildSection(
-                  label: 'Documento',
-                  value:
-                      '${widget.ticket.participantDocumentType ?? ''}: ${widget.ticket.participantDocumentNumber ?? ''}',
-                  isBold: false,
-                ),
-                const SizedBox(height: 12),
-
-                _buildBadgeSection(
-                  label: 'Estado Participante',
-                  value: participantStatus,
-                  isActive: widget.ticket.participantStatus == 'active',
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 16),
-
-                // Estado del ticket y fecha
-                _buildStatusBox(
-                  status: _getTicketStatusText(false),
-                  backgroundColor: _getStatusBackgroundColor(false),
-                  textColor: _getStatusColor(false),
-                ),
-                const SizedBox(height: 16),
-
-                _buildSection(
-                  label: 'Fecha de Compra',
-                  value: purchaseDateStr,
-                  icon: Icons.calendar_today,
-                  isBold: false,
-                ),
-              ],
-            ),
-          ),
-
-          // Botones de acción
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed:
-                            widget.isSaving || !widget.isFirstTime
-                                ? null
-                                : () => widget.onSaveData(
-                                  _runnerNumberController.text,
-                                  _chipIdController.text,
-                                ),
-                        icon:
-                            widget.isSaving
-                                ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                                : const Icon(Icons.save),
-                        label: const Text(
-                          'Guardar Datos',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: AppColors.primary,
+                  // Correlativo y Ticket ID
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildSectionWithIcon(
+                          label: 'Correlativo',
+                          value:
+                              (widget.ticket.ticketCorrelative ?? 0).toString(),
+                          icon: Icons.numbers,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton(
-                      onPressed: widget.isSaving ? null : widget.onNewScan,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        side: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSectionWithIcon(
+                          label: 'Ticket ID',
+                          value: widget.ticket.validationCode ?? 'N/A',
+                          icon: Icons.confirmation_number,
                         ),
                       ),
-                      child: const Text('Nuevo Escaneo'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  // Inputs editables
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
                     ),
+                    child: Column(
+                      children: [
+                        _buildInputField(
+                          label: 'Número de Corredor',
+                          controller: _runnerNumberController,
+                          icon: Icons.numbers,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInputField(
+                          label: 'Chip ID',
+                          controller: _chipIdController,
+                          icon: Icons.security,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  // Información del participante
+                  _buildSection(
+                    label: 'Participante',
+                    value: widget.ticket.participantName,
+                    icon: Icons.person,
+                    isBold: true,
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildSection(
+                    label: 'Documento',
+                    value:
+                        '${widget.ticket.participantDocumentType ?? ''}: ${widget.ticket.participantDocumentNumber ?? ''}',
+                    isBold: false,
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildBadgeSection(
+                    label: 'Estado Participante',
+                    value: participantStatus,
+                    isActive: widget.ticket.participantStatus == 'active',
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  // Estado del ticket y fecha
+                  _buildStatusBox(
+                    status: _getTicketStatusText(false),
+                    backgroundColor: _getStatusBackgroundColor(false),
+                    textColor: _getStatusColor(false),
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (widget.ticket.validatedByName != null &&
+                      widget.ticket.validatedByName!.isNotEmpty) ...[
+                    _buildSection(
+                      label: 'Validado por',
+                      value: widget.ticket.validatedByName!,
+                      icon: Icons.person_pin_outlined,
+                      isBold: false,
+                    ),
+                    const SizedBox(height: 12),
                   ],
-                ),
-              ],
+
+                  _buildSection(
+                    label: 'Fecha de Compra',
+                    value: purchaseDateStr,
+                    icon: Icons.calendar_today,
+                    isBold: false,
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed:
+                      (widget.isSaving ||
+                              widget.ticket.ticketStatus == 'validated')
+                          ? null
+                          : () => widget.onSaveData(
+                            _runnerNumberController.text,
+                            _chipIdController.text,
+                          ),
+                  icon:
+                      widget.isSaving
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                          : const Icon(Icons.save),
+                  label: Text(
+                    widget.ticket.ticketStatus == 'validated'
+                        ? 'Validado'
+                        : 'Guardar Datos',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor:
+                        widget.ticket.ticketStatus == 'validated'
+                            ? Colors.grey
+                            : AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: widget.isSaving ? null : widget.onNewScan,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Nuevo Escaneo'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color:
+            isActive
+                ? Colors.green.withValues(alpha: 0.1)
+                : Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color:
+              isActive
+                  ? Colors.green.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Text(
+        isActive ? 'Activo' : 'Inactivo',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isActive ? Colors.green : Colors.grey,
+        ),
       ),
     );
   }

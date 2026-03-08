@@ -7,6 +7,8 @@ import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/synchronize_event_attendees.dart';
 import '../../domain/usecases/synchronize_participants.dart';
+import '../../domain/usecases/get_attendee_status_summary.dart';
+import '../../domain/entities/attendee_status_summary.dart';
 
 part 'event_event.dart';
 part 'event_state.dart';
@@ -15,25 +17,30 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   final SynchronizeEventAttendees synchronizeEventAttendees;
   final GetEvents getEvents;
   final SynchronizeParticipants synchronizeParticipants;
+  final GetAttendeeStatusSummary getAttendeeStatusSummary;
 
   EventBloc({
     required this.synchronizeEventAttendees,
     required this.getEvents,
     required this.synchronizeParticipants,
+    required this.getAttendeeStatusSummary,
   }) : super(EventInitial()) {
     on<FetchEvents>(_onFetchEvents);
     on<SynchronizeEventAttendeesEvent>(_onSynchronizeEventAttendees);
+    on<GetAttendeeStatusSummaryEvent>(_onGetAttendeeStatusSummary);
   }
 
   Future<void> _onFetchEvents(
     FetchEvents event,
     Emitter<EventState> emit,
   ) async {
+    print('EventBloc: FetchEvents triggered');
     emit(EventLoading());
     try {
       final result = await getEvents(NoParams());
       result.fold(
         (failure) {
+          print('EventBloc: FetchEvents failed with failure: $failure');
           String errorMessage = 'Error al cargar eventos';
           if (failure is ServerFailure) {
             errorMessage = 'Error del servidor. Intenta de nuevo.';
@@ -45,13 +52,18 @@ class EventBloc extends Bloc<EventEvent, EventState> {
           emit(EventError(errorMessage));
         },
         (events) {
+          print(
+            'EventBloc: FetchEvents success, loaded ${events.length} events',
+          );
           emit(EventLoaded(events));
 
           // Iniciar sincronización en background para cada evento
           _syncParticipantsInBackground(events);
         },
       );
-    } catch (e) {
+    } catch (e, stacktrace) {
+      print('EventBloc: Unexpected error in FetchEvents: $e');
+      print('Stacktrace: $stacktrace');
       emit(EventError('Error inesperado: ${e.toString()}'));
     }
   }
@@ -90,6 +102,24 @@ class EventBloc extends Bloc<EventEvent, EventState> {
       }, (_) => emit(SyncSuccess(event.eventId)));
     } catch (e) {
       emit(SyncFailure(event.eventId, 'Error inesperado: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onGetAttendeeStatusSummary(
+    GetAttendeeStatusSummaryEvent event,
+    Emitter<EventState> emit,
+  ) async {
+    emit(AttendeeStatusSummaryLoading(event.eventId));
+    try {
+      final result = await getAttendeeStatusSummary.execute(event.eventId);
+      result.fold(
+        (failure) => emit(
+          AttendeeStatusSummaryError(event.eventId, 'Error al cargar resumen'),
+        ),
+        (summary) => emit(AttendeeStatusSummaryLoaded(event.eventId, summary)),
+      );
+    } catch (e) {
+      emit(AttendeeStatusSummaryError(event.eventId, e.toString()));
     }
   }
 }

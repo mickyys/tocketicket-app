@@ -244,7 +244,7 @@ class ParticipantBloc extends Bloc<ParticipantEvent, ParticipantState> {
             eventId: event.eventId,
             token: event.token,
             page: 1,
-            pageSize: 10,
+            pageSize: 1000,
             isLoadMore: false,
           ),
         );

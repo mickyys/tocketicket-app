@@ -52,3 +52,7 @@ android/app/keystore.jks
 # iOS signing
 ios/Runner/GoogleService-Info.plist
 ios/Runner/ExportOptions-prod.plist
+
+build
+.settings
+build_log.txt

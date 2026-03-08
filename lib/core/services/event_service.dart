@@ -7,6 +7,7 @@ import '../utils/http_header_utils.dart';
 import 'auth_service.dart';
 import '../../features/events/data/models/attendee_model.dart';
 import '../../features/events/data/models/event_model.dart';
+import '../../features/events/data/models/attendee_status_summary_model.dart';
 
 class EventService {
   final http.Client client;
@@ -71,43 +72,83 @@ class EventService {
     return allAttendees;
   }
 
-  /// Obtiene la lista de eventos del organizador
-  Future<List<EventModel>> getEvents() async {
+  /// Obtiene un resumen del estado de los asistentes (confirmados vs sin confirmar)
+  Future<AttendeeStatusSummaryModel> getAttendeeStatusSummary(
+    String eventId,
+  ) async {
     final headers = await _getHeaders();
+    final url = '$baseUrl/organizer/events/$eventId/attendees/status-summary';
 
-    final response = await client.get(
-      Uri.parse('${AppConstants.organizerEventsEndpoint}?page=1&pageSize=50'),
-      headers: headers,
-    );
+    final response = await client.get(Uri.parse(url), headers: headers);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final eventsData = data['data'] as List;
+      return AttendeeStatusSummaryModel.fromJson(data);
+    } else {
+      throw Exception('Failed to load attendee status summary');
+    }
+  }
 
-      return eventsData
-          .map(
-            (eventJson) => EventModel.fromJson({
-              'id': eventJson['id'],
-              'name': eventJson['name'],
-              'description': eventJson['description'] ?? '',
-              'startDate': eventJson['startDate'],
-              'endDate': eventJson['endDate'],
+  /// Obtiene la lista de eventos del organizador
+  Future<List<EventModel>> getEvents() async {
+    print('EventService: getEvents called');
+    final headers = await _getHeaders();
+    final url =
+        '${AppConstants.organizerEventsEndpoint}?page=1&pageSize=50&status=published';
+    print('EventService: GET $url');
+
+    try {
+      final response = await client.get(Uri.parse(url), headers: headers);
+
+      print('EventService: response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final eventsData = data['data'] as List;
+        print('EventService: received ${eventsData.length} events');
+
+        return eventsData.map((eventJson) {
+          try {
+            return EventModel.fromJson({
+              'id': eventJson['id']?.toString() ?? '',
+              'name': eventJson['name']?.toString() ?? 'Sin nombre',
+              'description': eventJson['description']?.toString() ?? '',
+              'startDate':
+                  eventJson['startDate'] != null
+                      ? DateTime.parse(eventJson['startDate']).toIso8601String()
+                      : null,
+              'endDate':
+                  eventJson['endDate'] != null
+                      ? DateTime.parse(eventJson['endDate']).toIso8601String()
+                      : null,
               'location': _extractLocationFromAddress(eventJson['address']),
               'address': _formatFullAddress(eventJson['address']),
               'imageUrl': _extractImageUrl(eventJson['images']),
-              'organizerId': eventJson['organizer']['name'] ?? '',
+              'organizerId': eventJson['organizer']?['name']?.toString() ?? '',
               'isActive': eventJson['status'] == 'active',
-              'isPublic': true, // Assuming all organizer events are public
+              'isPublic': true,
               'ticketsSold': eventJson['ticketsSold'] ?? 0,
               'totalTickets': eventJson['maxCapacity'] ?? 0,
-              'status': eventJson['status'],
-            }),
-          )
-          .toList();
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized: Token expired or invalid');
-    } else {
-      throw Exception('Failed to load events: ${response.statusCode}');
+              'status': eventJson['status']?.toString() ?? 'unknown',
+            });
+          } catch (e) {
+            print('EventService: Error mapping event ID: ${eventJson['id']}');
+            print('EventService: problematic JSON node: $eventJson');
+            rethrow;
+          }
+        }).toList();
+      } else if (response.statusCode == 401) {
+        print('EventService: 401 Unauthorized');
+        throw Exception('Unauthorized: Token expired or invalid');
+      } else {
+        print('EventService: Failed with status ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to load events: ${response.statusCode}');
+      }
+    } catch (e, stacktrace) {
+      print('EventService: Error in getEvents: $e');
+      print('Stacktrace: $stacktrace');
+      rethrow;
     }
   }
 

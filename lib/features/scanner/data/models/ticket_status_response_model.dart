@@ -16,6 +16,7 @@ class TicketStatusResponseModel extends Equatable {
   final String? ticketName;
   final DateTime? purchaseDate;
   final DateTime? validatedAt;
+  final String? validatedByName;
   final String? categoryName;
   final String? runnerNumber;
   final String? chipId;
@@ -32,6 +33,7 @@ class TicketStatusResponseModel extends Equatable {
     this.ticketName,
     this.purchaseDate,
     this.validatedAt,
+    this.validatedByName,
     this.categoryName,
     this.runnerNumber,
     this.chipId,
@@ -56,6 +58,7 @@ class TicketStatusResponseModel extends Equatable {
       participantDocumentType: participantDocumentType,
       participantDocumentNumber: participantDocumentNumber,
       validatedAt: null,
+      validatedByName: validatedByName,
       purchaseDate: purchaseDate,
       runnerNumber: runnerNumber,
       chipId: chipId,
@@ -76,6 +79,7 @@ class TicketStatusResponseModel extends Equatable {
     ticketName,
     purchaseDate,
     validatedAt,
+    validatedByName,
     categoryName,
     runnerNumber,
     chipId,

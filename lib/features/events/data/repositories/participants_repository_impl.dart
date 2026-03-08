@@ -94,7 +94,7 @@ class ParticipantsRepositoryImpl implements ParticipantsRepository {
         eventId,
         token,
         page: 1,
-        pageSize: 100, // Cargar hasta 100 en una sincronización
+        pageSize: 1000,
       );
 
       final List<dynamic> dataList = result['data'] ?? [];

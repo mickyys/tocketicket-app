@@ -13,6 +13,7 @@ import '../../features/events/domain/usecases/synchronize_event_attendees.dart';
 import '../../features/events/domain/usecases/get_event_participants_detailed.dart';
 import '../../features/events/domain/usecases/search_participants.dart';
 import '../../features/events/domain/usecases/synchronize_participants.dart';
+import '../../features/events/domain/usecases/get_attendee_status_summary.dart';
 import '../../features/events/domain/usecases/clear_local_cache.dart';
 import '../../features/events/data/datasources/participants_remote_data_source.dart';
 import '../../features/events/data/datasources/participants_local_data_source.dart';
@@ -103,6 +104,7 @@ class DependencyInjection {
       create:
           (context) => TicketRepositoryImpl(
             remoteDataSource: context.read<TicketRemoteDataSource>(),
+            localDataSource: context.read<ParticipantsLocalDataSource>(),
           ),
     ),
 
@@ -117,6 +119,12 @@ class DependencyInjection {
     // Use Cases
     RepositoryProvider<GetEvents>(
       create: (context) => GetEvents(context.read<EventRepository>()),
+    ),
+
+    RepositoryProvider<GetAttendeeStatusSummary>(
+      create:
+          (context) =>
+              GetAttendeeStatusSummary(context.read<EventRepository>()),
     ),
 
     RepositoryProvider<SynchronizeEventAttendees>(

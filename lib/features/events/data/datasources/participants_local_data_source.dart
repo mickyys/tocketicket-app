@@ -14,6 +14,10 @@ abstract class ParticipantsLocalDataSource {
     String query,
   );
 
+  Future<ParticipantModel?> getParticipantByValidationCode(
+    String validationCode,
+  );
+
   Future<void> clearParticipantsByEvent(String eventId);
 }
 
@@ -57,6 +61,14 @@ class ParticipantsLocalDataSourceImpl implements ParticipantsLocalDataSource {
   ) async {
     final results = await _database.searchParticipants(eventId, query);
     return results.map((map) => ParticipantModel.fromJson(map)).toList();
+  }
+
+  @override
+  Future<ParticipantModel?> getParticipantByValidationCode(
+    String validationCode,
+  ) async {
+    final result = await _database.findByValidationCode(validationCode);
+    return result != null ? ParticipantModel.fromJson(result) : null;
   }
 
   @override

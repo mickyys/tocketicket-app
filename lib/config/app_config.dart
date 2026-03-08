@@ -1,3 +1,5 @@
+import 'dart:io';
+
 enum Environment { local, dev, prod }
 
 class AppConfig {
@@ -6,7 +8,7 @@ class AppConfig {
 
   static const String _envString = String.fromEnvironment(
     'ENVIRONMENT',
-    defaultValue: 'dev',
+    defaultValue: 'local',
   );
 
   static void setEnvironment() {
@@ -30,7 +32,9 @@ class AppConfig {
   static String get baseUrl {
     switch (_environment) {
       case Environment.local:
-        return 'http://localhost:8080';
+        return Platform.isAndroid
+            ? 'http://10.0.2.2:8080'
+            : 'http://127.0.0.1:8080';
       case Environment.dev:
         return 'https://api.dev.tocketicket.cl';
       case Environment.prod:

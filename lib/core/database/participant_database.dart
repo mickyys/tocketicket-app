@@ -151,6 +151,19 @@ class ParticipantDatabase {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  Future<Map<String, dynamic>?> findByValidationCode(
+    String validationCode,
+  ) async {
+    final db = await database;
+    final results = await db.query(
+      'participants',
+      where: 'validationCode = ?',
+      whereArgs: [validationCode],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   Future<void> close() async {
     _database?.close();
   }

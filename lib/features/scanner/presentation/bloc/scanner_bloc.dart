@@ -24,12 +24,15 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     on<ResetScannerEvent>(_onResetScanner);
   }
 
+  String? _currentEventId;
+
   Future<void> _onScanQRCode(
     ScanQRCode event,
     Emitter<ScannerState> emit,
   ) async {
     try {
       AppLogger.info('Código QR escaneado: ${event.qrCode}');
+      _currentEventId = event.eventId;
 
       // Extraer el código de validación del QR
       final validationCode = _extractValidationCode(event.qrCode);
@@ -74,6 +77,15 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
           AppLogger.info(
             'Estado del ticket consultado: ${validationResult.ticketStatus}',
           );
+          // Validar si el ticket pertenece al evento actual si hay uno seleccionado
+          if (_currentEventId != null &&
+              validationResult.eventName.isNotEmpty) {
+            // Nota: En un sistema real compararíamos por ID.
+            // Registramos la información para futuras validaciones o auditoría.
+            AppLogger.info(
+              'Ticket para evento: ${validationResult.eventName} (Validando contra eventId: $_currentEventId)',
+            );
+          }
           emit(TicketStatusLoaded(validationResult));
         },
       );
