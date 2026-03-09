@@ -79,13 +79,19 @@ class EventService {
     final headers = await _getHeaders();
     final url = '$baseUrl/organizer/events/$eventId/attendees/status-summary';
 
+    print('[EventService] GET $url');
     final response = await client.get(Uri.parse(url), headers: headers);
+    print(
+      '[EventService] status-summary response: ${response.statusCode} body: ${response.body}',
+    );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return AttendeeStatusSummaryModel.fromJson(data);
     } else {
-      throw Exception('Failed to load attendee status summary');
+      throw Exception(
+        'Failed to load attendee status summary: ${response.statusCode} ${response.body}',
+      );
     }
   }
 

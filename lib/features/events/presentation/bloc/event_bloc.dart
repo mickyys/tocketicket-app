@@ -109,16 +109,33 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     GetAttendeeStatusSummaryEvent event,
     Emitter<EventState> emit,
   ) async {
+    print(
+      '[EventBloc#$hashCode] GetAttendeeStatusSummary: iniciando request para evento ${event.eventId}',
+    );
     emit(AttendeeStatusSummaryLoading(event.eventId));
     try {
       final result = await getAttendeeStatusSummary.execute(event.eventId);
       result.fold(
-        (failure) => emit(
-          AttendeeStatusSummaryError(event.eventId, 'Error al cargar resumen'),
-        ),
-        (summary) => emit(AttendeeStatusSummaryLoaded(event.eventId, summary)),
+        (failure) {
+          print(
+            '[EventBloc#$hashCode] GetAttendeeStatusSummary: ERROR → $failure',
+          );
+          emit(
+            AttendeeStatusSummaryError(
+              event.eventId,
+              'Error al cargar resumen',
+            ),
+          );
+        },
+        (summary) {
+          print(
+            '[EventBloc#$hashCode] GetAttendeeStatusSummary: OK → confirmed=${summary.confirmed} unconfirmed=${summary.unconfirmed} total=${summary.total}',
+          );
+          emit(AttendeeStatusSummaryLoaded(event.eventId, summary));
+        },
       );
     } catch (e) {
+      print('[EventBloc#$hashCode] GetAttendeeStatusSummary: EXCEPCIÓN → $e');
       emit(AttendeeStatusSummaryError(event.eventId, e.toString()));
     }
   }

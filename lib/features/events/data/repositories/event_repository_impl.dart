@@ -44,10 +44,17 @@ class EventRepositoryImpl implements EventRepository {
   Future<Either<Failure, AttendeeStatusSummary>> getAttendeeStatusSummary(
     String eventId,
   ) async {
+    print(
+      '[EventRepository] getAttendeeStatusSummary llamado para evento $eventId',
+    );
     try {
       final summary = await eventService.getAttendeeStatusSummary(eventId);
+      print(
+        '[EventRepository] getAttendeeStatusSummary OK: confirmed=${summary.confirmed} unconfirmed=${summary.unconfirmed} total=${summary.total}',
+      );
       return Right(summary);
     } catch (e) {
+      print('[EventRepository] getAttendeeStatusSummary ERROR: $e');
       return Left(ServerFailure());
     }
   }
