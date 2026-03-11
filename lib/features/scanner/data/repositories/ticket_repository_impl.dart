@@ -91,6 +91,8 @@ class TicketRepositoryImpl implements TicketRepository {
       chipId: model.chipId,
       validationCode: model.validationCode,
       isValid: model.isValid ?? (model.ticketStatus == 'valid'),
+      enableChipId: model.enableChipId ?? false,
+      enableRunnerNumber: model.enableRunnerNumber ?? false,
     );
   }
 

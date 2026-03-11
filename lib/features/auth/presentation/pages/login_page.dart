@@ -24,21 +24,41 @@ class _LoginPageState extends State<LoginPage>
   final List<FocusNode> _codeFocusNodes = List.generate(6, (_) => FocusNode());
   bool _isLoading = false;
   bool _showCodeInput = false;
-  double _tabHeight = 300.0;
+  bool _rememberMe = false;
+  double _tabHeight = 450.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
+    _loadRememberedCredentials();
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    final credentials = await AuthService.getRememberMeCredentials();
+    if (credentials['email'] != null && credentials['password'] != null) {
+      if (mounted) {
+        setState(() {
+          _emailController.text = credentials['email']!;
+          _passwordController.text = credentials['password']!;
+          _rememberMe = true;
+        });
+      }
+    }
   }
 
   void _handleTabChange() {
     if (!_tabController.indexIsChanging) {
-      setState(() {
-        // Usuario = 300, Código = 300
-        _tabHeight = 300.0;
-      });
+      // Calculate height based on index
+      // Tab 0 (Usuario) needs more space for remember me + 2 fields + button
+      // Tab 1 (Código) only has 1 field + button
+      final targetHeight = _tabController.index == 0 ? 450.0 : 300.0;
+      if (_tabHeight != targetHeight) {
+        setState(() {
+          _tabHeight = targetHeight;
+        });
+      }
     }
   }
 
@@ -86,6 +106,15 @@ class _LoginPageState extends State<LoginPage>
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => const HomePage()),
             );
+          }
+
+          if (_rememberMe) {
+            await AuthService.saveRememberMeCredentials(
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
+          } else {
+            await AuthService.clearRememberMeCredentials();
           }
         } else {
           _showError(result['error'] ?? 'Error al iniciar sesión');
@@ -241,23 +270,6 @@ class _LoginPageState extends State<LoginPage>
                             ),
                           );
                         },
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'Bienvenido',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Inicia sesión para continuar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textSecondary,
-                        ),
                       ),
                     ],
                   ),
@@ -488,6 +500,50 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+
+          // Remember Me Checkbox
+          Row(
+            children: [
+              SizedBox(
+                height: 24,
+                width: 24,
+                child: Checkbox(
+                  value: _rememberMe,
+                  onChanged:
+                      _isLoading
+                          ? null
+                          : (value) {
+                            setState(() {
+                              _rememberMe = value ?? false;
+                            });
+                          },
+                  activeColor: AppColors.primary,
+                  side: BorderSide(
+                    color: AppColors.border.withValues(alpha: 0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap:
+                    _isLoading
+                        ? null
+                        : () {
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                child: const Text(
+                  'Recordarme',
+                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
 

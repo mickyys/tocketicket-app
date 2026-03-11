@@ -33,6 +33,8 @@ ValidationResultModel _$ValidationResultModelFromJson(
   chipId: json['chipId'] as String?,
   validationCode: json['validationCode'] as String?,
   isValid: json['isValid'] as bool?,
+  enableChipId: json['enableChipId'] as bool?,
+  enableRunnerNumber: json['enableRunnerNumber'] as bool?,
 );
 
 Map<String, dynamic> _$ValidationResultModelToJson(
@@ -56,4 +58,6 @@ Map<String, dynamic> _$ValidationResultModelToJson(
   'chipId': instance.chipId,
   'validationCode': instance.validationCode,
   'isValid': instance.isValid,
+  'enableChipId': instance.enableChipId,
+  'enableRunnerNumber': instance.enableRunnerNumber,
 };

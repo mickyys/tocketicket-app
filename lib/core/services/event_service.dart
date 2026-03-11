@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tocke/config/app_config.dart';
 import 'package:tocke/core/constants/app_constants.dart';
+import 'package:tocke/core/utils/global_keys.dart';
+import 'package:tocke/features/auth/presentation/pages/login_page.dart';
 import '../utils/logger.dart';
 import '../utils/http_header_utils.dart';
 import 'auth_service.dart';
@@ -14,6 +17,28 @@ class EventService {
   String get baseUrl => AppConfig.baseUrl;
 
   EventService({required this.client});
+
+  /// Check for invalid token error and redirect to login if necessary
+  Future<void> _checkResponse(http.Response response) async {
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      try {
+        final body = json.decode(response.body);
+        if (body is Map && body['error'] == 'invalid token') {
+          AppLogger.error('Invalid token detected, redirecting to login');
+          await AuthService.logout();
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+          throw Exception('Session expired: Invalid token');
+        }
+      } catch (e) {
+        // If parsing fails or key doesn't exist, just continue letting caller handle 401
+        // or rethrow if we want to be strict about JSON parsing errors
+        AppLogger.error('Error parsing error response: $e');
+      }
+    }
+  }
 
   /// Obtiene el token de acceso del AuthService
   Future<String> _getAuthToken() async {
@@ -49,6 +74,8 @@ class EventService {
         headers: headers,
       );
 
+      await _checkResponse(response);
+
       AppLogger.info('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
@@ -81,6 +108,9 @@ class EventService {
 
     print('[EventService] GET $url');
     final response = await client.get(Uri.parse(url), headers: headers);
+
+    await _checkResponse(response);
+
     print(
       '[EventService] status-summary response: ${response.statusCode} body: ${response.body}',
     );
@@ -105,6 +135,8 @@ class EventService {
 
     try {
       final response = await client.get(Uri.parse(url), headers: headers);
+
+      await _checkResponse(response);
 
       print('EventService: response status: ${response.statusCode}');
 
@@ -145,6 +177,11 @@ class EventService {
         }).toList();
       } else if (response.statusCode == 401) {
         print('EventService: 401 Unauthorized');
+        await AuthService.logout();
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
         throw Exception('Unauthorized: Token expired or invalid');
       } else {
         print('EventService: Failed with status ${response.statusCode}');

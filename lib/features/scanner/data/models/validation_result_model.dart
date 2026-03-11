@@ -30,6 +30,8 @@ class ValidationResultModel extends Equatable {
   final String? chipId;
   final String? validationCode;
   final bool? isValid;
+  final bool? enableChipId;
+  final bool? enableRunnerNumber;
 
   const ValidationResultModel({
     required this.eventName,
@@ -50,6 +52,8 @@ class ValidationResultModel extends Equatable {
     this.chipId,
     this.validationCode,
     this.isValid,
+    this.enableChipId,
+    this.enableRunnerNumber,
   });
 
   // Getter para mantener compatibilidad con código existente
@@ -78,6 +82,8 @@ class ValidationResultModel extends Equatable {
       chipId: chipId,
       validationCode: validationCode,
       isValid: isValid ?? (ticketStatus == 'valid'),
+      enableChipId: enableChipId ?? false,
+      enableRunnerNumber: enableRunnerNumber ?? false,
     );
   }
 

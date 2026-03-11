@@ -79,6 +79,8 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
           chipId: ticketStatusResponse.chipId ?? '',
           validationCode: ticketStatusResponse.validationCode ?? validationCode,
           isValid: ticketStatusResponse.ticketStatus == 'valid',
+          enableChipId: ticketStatusResponse.enableChipId ?? false,
+          enableRunnerNumber: ticketStatusResponse.enableRunnerNumber ?? false,
         );
       } else if (response.statusCode == 404) {
         throw ServerException('Ticket no encontrado');

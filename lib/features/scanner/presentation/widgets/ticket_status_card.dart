@@ -234,34 +234,41 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                   const SizedBox(height: 16),
 
                   // Inputs editables
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
+                  if (widget.ticket.enableRunnerNumber ||
+                      widget.ticket.enableChipId) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          if (widget.ticket.enableRunnerNumber) ...[
+                            _buildInputField(
+                              label: 'Número de Corredor',
+                              controller: _runnerNumberController,
+                              icon: Icons.numbers,
+                            ),
+                            if (widget.ticket.enableChipId)
+                              const SizedBox(height: 16),
+                          ],
+                          if (widget.ticket.enableChipId)
+                            _buildInputField(
+                              label: 'Chip ID',
+                              controller: _chipIdController,
+                              icon: Icons.security,
+                            ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        _buildInputField(
-                          label: 'Número de Corredor',
-                          controller: _runnerNumberController,
-                          icon: Icons.numbers,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildInputField(
-                          label: 'Chip ID',
-                          controller: _chipIdController,
-                          icon: Icons.security,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Información del participante
                   _buildSection(
