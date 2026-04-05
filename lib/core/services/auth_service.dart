@@ -83,7 +83,10 @@ class AuthService {
 
         return {
           'success': false,
-          'error': responseData['message'] ?? 'Error al iniciar sesión',
+          'error':
+              responseData['message'] ??
+              responseData['error'] ??
+              'Error al iniciar sesión',
         };
       }
     } catch (e, stackTrace) {
@@ -164,6 +167,31 @@ class AuthService {
         'error': 'Error de conexión. Verifica tu internet.',
       };
     }
+  }
+
+  static Future<void> saveRememberMeCredentials(
+    String email,
+    String password,
+  ) async {
+    await _storage.write(key: 'remember_me_email', value: email);
+    await _storage.write(key: 'remember_me_password', value: password);
+    await _storage.write(key: 'remember_me_enabled', value: 'true');
+  }
+
+  static Future<void> clearRememberMeCredentials() async {
+    await _storage.delete(key: 'remember_me_email');
+    await _storage.delete(key: 'remember_me_password');
+    await _storage.write(key: 'remember_me_enabled', value: 'false');
+  }
+
+  static Future<Map<String, String?>> getRememberMeCredentials() async {
+    final enabled = await _storage.read(key: 'remember_me_enabled');
+    if (enabled == 'true') {
+      final email = await _storage.read(key: 'remember_me_email');
+      final password = await _storage.read(key: 'remember_me_password');
+      return {'email': email, 'password': password};
+    }
+    return {'email': null, 'password': null};
   }
 
   static Future<Map<String, dynamic>> requestOtp({

@@ -15,11 +15,8 @@ import '../../domain/entities/participant.dart';
 import '../../domain/entities/attendee_status_summary.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
-import '../../domain/usecases/synchronize_participants.dart';
-import '../../domain/usecases/clear_local_cache.dart';
 import '../bloc/participant_bloc.dart';
 import '../bloc/event_bloc.dart';
-import 'event_participants_page.dart';
 
 class EventDetailPage extends StatelessWidget {
   final Event event;
@@ -36,25 +33,31 @@ class EventDetailPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create:
-              (context) => ParticipantBloc(
-                getEventParticipantsDetailed:
-                    context.read<GetEventParticipantsDetailed>(),
-                searchParticipants: context.read<SearchParticipants>(),
-                synchronizeParticipants:
-                    context.read<SynchronizeParticipants>(),
-                clearLocalCache: context.read<ClearLocalCache>(),
-              )..add(
-                FetchParticipantsEvent(
-                  eventId: event.id,
-                  token:
-                      '', // El BLoC debería obtener el token si es necesario o pasarlo
-                  pageSize: 1000, // Cargar bastantes para estadísticas
-                ),
+          create: (context) {
+            debugPrint(
+              '[EventDetail] [1] Lanzando FetchParticipantsEvent (caché local) para evento ${event.id}',
+            );
+            return ParticipantBloc(
+              getEventParticipantsDetailed:
+                  context.read<GetEventParticipantsDetailed>(),
+              searchParticipants: context.read<SearchParticipants>(),
+            )..add(
+              FetchParticipantsEvent(
+                eventId: event.id,
+                token: '',
+                pageSize: 1000,
               ),
+            );
+          },
         ),
         BlocProvider<EventBloc>.value(
-          value: eventBloc..add(GetAttendeeStatusSummaryEvent(event.id)),
+          value: () {
+            print(
+              '[EventDetail] [2] Lanzando GetAttendeeStatusSummaryEvent para evento ${event.id} (bloc#${eventBloc.hashCode})',
+            );
+            eventBloc.add(GetAttendeeStatusSummaryEvent(event.id));
+            return eventBloc;
+          }(),
         ),
       ],
       child: EventDetailView(event: event),
@@ -76,30 +79,35 @@ class _EventDetailViewState extends State<EventDetailView> {
   bool _isSyncing = true;
   bool _syncError = false;
 
+  // Cache del último summary recibido del servidor.
+  // Se guarda aquí para que no se pierda cuando el EventBloc emite otros estados.
+  int _confirmedCount = 0;
+  int _unconfirmedCount = 0;
+  int _totalAttendees = 0;
+  List<CategoryScanInfo>? _byCategory;
+  bool? _enableChipId;
+  bool? _enableRunnerNumber;
+  bool _summaryLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _loadLastScan();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncParticipants());
-  }
-
-  Future<void> _syncParticipants() async {
-    if (!mounted) return;
-    setState(() {
-      _isSyncing = true;
-      _syncError = false;
-    });
-    final token = await AuthService.getAccessToken() ?? '';
-    if (mounted) {
-      context.read<ParticipantBloc>().add(
-        SynchronizeParticipantsEvent(eventId: widget.event.id, token: token),
-      );
-    }
+    _isSyncing = false;
   }
 
   void _onParticipantStateChange(BuildContext context, ParticipantState state) {
+    print('[EventDetail] ParticipantState → ${state.runtimeType}');
     if (state is ParticipantLoaded && !state.isLoadingMore) {
-      if (_isSyncing) setState(() => _isSyncing = false);
+      final eventBloc = context.read<EventBloc>();
+      print(
+        '[EventDetail] [5] ParticipantLoaded: ${state.participants.length} participantes. '
+        'Lanzando GetAttendeeStatusSummaryEvent en bloc#${eventBloc.hashCode}.',
+      );
+      if (_isSyncing) {
+        setState(() => _isSyncing = false);
+      }
+      eventBloc.add(GetAttendeeStatusSummaryEvent(widget.event.id));
     } else if (state is ParticipantError) {
       if (_isSyncing || !_syncError) {
         setState(() {
@@ -131,318 +139,352 @@ class _EventDetailViewState extends State<EventDetailView> {
     final event = widget.event;
     return BlocListener<ParticipantBloc, ParticipantState>(
       listener: _onParticipantStateChange,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Image.asset(
-            'assets/images/tocke_logo.png',
-            height: 32,
-            errorBuilder: (context, error, stackTrace) => const Text('Tocke'),
-          ),
-          centerTitle: true,
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child:
-                  _isSyncing
-                      ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
-                      )
-                      : Icon(
-                        _syncError ? Icons.sync_problem : Icons.cloud_done,
-                        size: 20,
-                        color: _syncError ? Colors.amber : AppColors.primary,
-                      ),
-            ),
-          ],
-        ),
-        body: BlocBuilder<EventBloc, EventState>(
-          builder: (context, eventState) {
-            int confirmedCount = 0;
-            int totalAttendees =
-                event.totalTickets > 0 ? event.totalTickets : 0;
-            int unconfirmedCount = 0;
-            List<CategoryScanInfo>? byCategoryFromSummary;
-
-            if (eventState is AttendeeStatusSummaryLoaded &&
-                eventState.eventId == event.id) {
-              confirmedCount = eventState.summary.confirmed;
-              totalAttendees = eventState.summary.total;
-              unconfirmedCount = eventState.summary.unconfirmed;
-              byCategoryFromSummary = eventState.summary.byCategory;
-            }
-
-            return BlocBuilder<ParticipantBloc, ParticipantState>(
-              builder: (context, state) {
-                List<Participant> participants = [];
-                // Usar un mapa para agrupar por categoría
-                // Priorizamos los datos del resumen si están disponibles
-                Map<String, List<Participant>> categories = {};
-
-                if (state is ParticipantLoaded) {
-                  participants = state.participants;
-
-                  // Agrupar por categoría usando los participantes cargados localmente
-                  for (var p in participants) {
-                    final category = p.categoryName ?? 'Sin Categoría';
-                    if (!categories.containsKey(category)) {
-                      categories[category] = [];
-                    }
-                    categories[category]!.add(p);
-                  }
-
-                  // Si el estado del resumen no ha cargado, intentamos usar los datos locales
-                  if (confirmedCount == 0 && participants.isNotEmpty) {
-                    confirmedCount =
-                        participants
-                            .where(
-                              (p) =>
-                                  p.ticketStatus == 'validated' ||
-                                  p.validatedAt != null,
-                            )
-                            .length;
-                    totalAttendees = participants.length;
-                    unconfirmedCount = totalAttendees - confirmedCount;
-                  }
-                }
-
-                final progressPercent =
-                    totalAttendees > 0
-                        ? (confirmedCount / totalAttendees * 100).round()
-                        : 0;
-
-                final pendingChip =
-                    participants
-                        .where(
-                          (p) =>
-                              (p.ticketStatus == 'validated' ||
-                                  p.validatedAt != null) &&
-                              (p.chipId == null || p.chipId!.isEmpty),
-                        )
-                        .length;
-
-                // Último escaneo — leído desde ReadHistoryService en initState
-                final lastScanText = _lastScanText;
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    await _loadLastScan();
-                    final token = await AuthService.getAccessToken() ?? '';
-                    if (context.mounted) {
-                      context.read<ParticipantBloc>().add(
-                        FetchParticipantsEvent(
-                          eventId: event.id,
-                          token: token,
-                          pageSize: 1000,
-                        ),
-                      );
-                      context.read<EventBloc>().add(
-                        GetAttendeeStatusSummaryEvent(event.id),
-                      );
-                    }
-                  },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Título y Badge
-                        _buildEventHeader(event),
-                        const SizedBox(height: 16),
-
-                        // Progreso de Check-in
-                        _buildProgressCard(
-                          confirmedCount,
-                          totalAttendees,
-                          progressPercent,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Grid de Métricas
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1.3,
-                          children: [
-                            _buildStatCard(
-                              icon: Icons.check_circle_outline,
-                              value: '$confirmedCount',
-                              label: 'Asistentes confirmados',
-                              highlight: true,
-                            ),
-                            _buildStatCard(
-                              icon: Icons.access_time,
-                              value: lastScanText,
-                              label: 'Último escaneo',
-                            ),
-                            _buildStatCard(
-                              icon: Icons.warning_amber_rounded,
-                              value: '$pendingChip',
-                              label: 'Sin chip/corredor',
-                              color: pendingChip > 0 ? Colors.amber : null,
-                            ),
-                            _buildStatCard(
-                              icon: Icons.people_outline,
-                              value: '$unconfirmedCount',
-                              label: 'Sin confirmar',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Alerta pendientes
-                        if (pendingChip > 0) _buildPendingAlert(pendingChip),
-                        const SizedBox(height: 24),
-
-                        // Por Categoría
-                        if (byCategoryFromSummary != null &&
-                            byCategoryFromSummary.isNotEmpty) ...[
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.style,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Por Categoría',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ...byCategoryFromSummary.map(
-                            (cat) => _buildCategoryInfoCard(cat),
-                          ),
-                          const SizedBox(height: 24),
-                        ] else if (categories.isNotEmpty) ...[
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.style,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Por Categoría (Carga Local)',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ...categories.entries.map(
-                            (entry) =>
-                                _buildCategoryCard(entry.key, entry.value),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-
-                        const SizedBox(
-                          height: 100,
-                        ), // Espacio extra para el BottomNavigationBar
-                      ],
-                    ),
-                  ),
-                );
-              },
+      child: BlocListener<EventBloc, EventState>(
+        listener: (context, eventState) {
+          if (eventState is AttendeeStatusSummaryLoaded &&
+              eventState.eventId == event.id) {
+            print(
+              '[EventDetail] BlocListener: summary recibido confirmed=${eventState.summary.confirmed} unconfirmed=${eventState.summary.unconfirmed} total=${eventState.summary.total}',
             );
-          },
-        ),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: -1, // Ninguno seleccionado en esta vista de detalle
-          onTap: (index) async {
-            if (index == 1) {
-              // Historial - Antes enviaba a EventParticipantsPage por error
-              final checkTicketStatus = context.read<CheckTicketStatus>();
-              final validateTicketQR = context.read<ValidateTicketQR>();
-              final updateTicketRunnerData =
-                  context.read<UpdateTicketRunnerData>();
+            setState(() {
+              _confirmedCount = eventState.summary.confirmed;
+              _unconfirmedCount = eventState.summary.unconfirmed;
+              _totalAttendees = eventState.summary.total;
+              _byCategory = eventState.summary.byCategory;
+              _enableChipId = eventState.summary.enableChipId;
+              _enableRunnerNumber = eventState.summary.enableRunnerNumber;
+              _summaryLoaded = true;
+            });
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Image.asset(
+              'assets/images/tocke_logo.png',
+              height: 32,
+              errorBuilder: (context, error, stackTrace) => const Text('Tocke'),
+            ),
+            centerTitle: true,
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child:
+                    _isSyncing
+                        ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
+                        : Icon(
+                          _syncError ? Icons.sync_problem : Icons.cloud_done,
+                          size: 20,
+                          color: _syncError ? Colors.amber : AppColors.primary,
+                        ),
+              ),
+            ],
+          ),
+          body: BlocBuilder<EventBloc, EventState>(
+            builder: (context, eventState) {
+              final bool summaryIsLoading =
+                  !_summaryLoaded && eventState is AttendeeStatusSummaryLoading;
 
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder:
-                      (context) => BlocProvider(
-                        create:
-                            (context) => ScannerBloc(
-                              checkTicketStatus: checkTicketStatus,
-                              validateTicketQR: validateTicketQR,
-                              updateTicketRunnerData: updateTicketRunnerData,
+              int confirmedCount = _summaryLoaded ? _confirmedCount : 0;
+              int totalAttendees =
+                  _summaryLoaded
+                      ? _totalAttendees
+                      : (event.totalTickets > 0 ? event.totalTickets : 0);
+              int unconfirmedCount = _summaryLoaded ? _unconfirmedCount : 0;
+              final List<CategoryScanInfo>? byCategoryFromSummary =
+                  _summaryLoaded ? _byCategory : null;
+
+              return BlocBuilder<ParticipantBloc, ParticipantState>(
+                builder: (context, state) {
+                  List<Participant> participants = [];
+                  // Usar un mapa para agrupar por categoría
+                  // Priorizamos los datos del resumen si están disponibles
+                  Map<String, List<Participant>> categories = {};
+
+                  if (state is ParticipantLoaded) {
+                    participants = state.participants;
+
+                    // Agrupar por categoría usando los participantes cargados localmente
+                    for (var p in participants) {
+                      final category = p.categoryName ?? 'Sin Categoría';
+                      if (!categories.containsKey(category)) {
+                        categories[category] = [];
+                      }
+                      categories[category]!.add(p);
+                    }
+
+                    // Fallback local sólo cuando la API ya terminó (error o sin datos);
+                    // durante la carga no sobreescribimos para evitar mostrar datos obsoletos.
+                    if (!summaryIsLoading &&
+                        confirmedCount == 0 &&
+                        participants.isNotEmpty) {
+                      confirmedCount =
+                          participants
+                              .where(
+                                (p) =>
+                                    p.ticketStatus == 'validated' ||
+                                    p.validatedAt != null,
+                              )
+                              .length;
+                      totalAttendees = participants.length;
+                      unconfirmedCount = totalAttendees - confirmedCount;
+                    }
+                  }
+
+                  final progressPercent =
+                      totalAttendees > 0
+                          ? (confirmedCount / totalAttendees * 100).round()
+                          : 0;
+
+                  final isChipEnabled = _enableChipId ?? true;
+                  final isRunnerEnabled = _enableRunnerNumber ?? true;
+                  final showPendingChip = isChipEnabled || isRunnerEnabled;
+
+                  final pendingChip =
+                      showPendingChip
+                          ? participants
+                              .where(
+                                (p) =>
+                                    (p.ticketStatus == 'validated' ||
+                                        p.validatedAt != null) &&
+                                    (p.chipId == null || p.chipId!.isEmpty),
+                              )
+                              .length
+                          : 0;
+
+                  // Último escaneo — leído desde ReadHistoryService en initState
+                  final lastScanText = _lastScanText;
+
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await _loadLastScan();
+                      final token = await AuthService.getAccessToken() ?? '';
+                      if (context.mounted) {
+                        context.read<ParticipantBloc>().add(
+                          FetchParticipantsEvent(
+                            eventId: event.id,
+                            token: token,
+                            pageSize: 1000,
+                          ),
+                        );
+                        context.read<EventBloc>().add(
+                          GetAttendeeStatusSummaryEvent(event.id),
+                        );
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Título y Badge
+                          _buildEventHeader(event),
+                          const SizedBox(height: 16),
+
+                          // Progreso de Check-in
+                          _buildProgressCard(
+                            confirmedCount,
+                            totalAttendees,
+                            progressPercent,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Grid de Métricas
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 1.3,
+                            children: [
+                              _buildStatCard(
+                                icon: Icons.check_circle_outline,
+                                value: '$confirmedCount',
+                                label: 'Asistentes confirmados',
+                                highlight: true,
+                              ),
+                              _buildStatCard(
+                                icon: Icons.access_time,
+                                value: lastScanText,
+                                label: 'Último escaneo',
+                              ),
+                              if (showPendingChip)
+                                _buildStatCard(
+                                  icon: Icons.warning_amber_rounded,
+                                  value: '$pendingChip',
+                                  label: 'Sin chip/corredor',
+                                  color: pendingChip > 0 ? Colors.amber : null,
+                                ),
+                              _buildStatCard(
+                                icon: Icons.people_outline,
+                                value: '$unconfirmedCount',
+                                label: 'Sin confirmar',
+                              ),
+                            ],
+                          ),
+                          if (showPendingChip) const SizedBox(height: 16),
+
+                          // Alerta pendientes
+                          if (showPendingChip && pendingChip > 0)
+                            _buildPendingAlert(pendingChip),
+                          if (showPendingChip && pendingChip > 0)
+                            const SizedBox(height: 24),
+
+                          // Por Categoría
+                          if (byCategoryFromSummary != null &&
+                              byCategoryFromSummary.isNotEmpty) ...[
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.style,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Por Categoría',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
                             ),
-                        child: const ScanHistoryPage(),
-                      ),
-                ),
-              );
-            } else if (index == 0) {
-              // Escanear - Ahora es índice 0 según BottomNavBar
-              final checkTicketStatus = context.read<CheckTicketStatus>();
-              final validateTicketQR = context.read<ValidateTicketQR>();
-              final updateTicketRunnerData =
-                  context.read<UpdateTicketRunnerData>();
-              final participantBloc = context.read<ParticipantBloc>();
+                            const SizedBox(height: 12),
+                            ...byCategoryFromSummary.map(
+                              (cat) => _buildCategoryInfoCard(cat),
+                            ),
+                            const SizedBox(height: 24),
+                          ] else if (categories.isNotEmpty) ...[
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.style,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Por Categoría (Carga Local)',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            ...categories.entries.map(
+                              (entry) =>
+                                  _buildCategoryCard(entry.key, entry.value),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
 
-              if (context.mounted) {
+                          const SizedBox(
+                            height: 100,
+                          ), // Espacio extra para el BottomNavigationBar
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+          bottomNavigationBar: BottomNavBar(
+            currentIndex: -1, // Ninguno seleccionado en esta vista de detalle
+            onTap: (index) async {
+              if (index == 1) {
+                // Historial - Antes enviaba a EventParticipantsPage por error
+                final checkTicketStatus = context.read<CheckTicketStatus>();
+                final validateTicketQR = context.read<ValidateTicketQR>();
+                final updateTicketRunnerData =
+                    context.read<UpdateTicketRunnerData>();
+
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder:
-                        (context) => MultiBlocProvider(
-                          providers: [
-                            BlocProvider(
-                              create:
-                                  (context) => ScannerBloc(
-                                    checkTicketStatus: checkTicketStatus,
-                                    validateTicketQR: validateTicketQR,
-                                    updateTicketRunnerData:
-                                        updateTicketRunnerData,
-                                  ),
-                            ),
-                            BlocProvider.value(value: participantBloc),
-                          ],
-                          child: QRScannerPage(
-                            eventId: event.id,
-                            eventName: event.name,
-                            onScanSaved: () {
-                              participantBloc.add(
-                                FetchParticipantsEvent(
-                                  eventId: event.id,
-                                  token: '',
-                                  pageSize: 1000,
-                                ),
-                              );
-                            },
-                          ),
+                        (context) => BlocProvider(
+                          create:
+                              (context) => ScannerBloc(
+                                checkTicketStatus: checkTicketStatus,
+                                validateTicketQR: validateTicketQR,
+                                updateTicketRunnerData: updateTicketRunnerData,
+                              ),
+                          child: const ScanHistoryPage(),
                         ),
                   ),
                 );
+              } else if (index == 0) {
+                // Escanear - Ahora es índice 0 según BottomNavBar
+                final checkTicketStatus = context.read<CheckTicketStatus>();
+                final validateTicketQR = context.read<ValidateTicketQR>();
+                final updateTicketRunnerData =
+                    context.read<UpdateTicketRunnerData>();
+                final participantBloc = context.read<ParticipantBloc>();
+                final eventBloc = context.read<EventBloc>();
+
+                if (context.mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder:
+                          (context) => MultiBlocProvider(
+                            providers: [
+                              BlocProvider(
+                                create:
+                                    (context) => ScannerBloc(
+                                      checkTicketStatus: checkTicketStatus,
+                                      validateTicketQR: validateTicketQR,
+                                      updateTicketRunnerData:
+                                          updateTicketRunnerData,
+                                    ),
+                              ),
+                              BlocProvider.value(value: participantBloc),
+                            ],
+                            child: QRScannerPage(
+                              eventId: event.id,
+                              eventName: event.name,
+                              onScanSaved: () {
+                                participantBloc.add(
+                                  FetchParticipantsEvent(
+                                    eventId: event.id,
+                                    token: '',
+                                    pageSize: 1000,
+                                  ),
+                                );
+                                // Refrescar el resumen de asistentes tras cada escaneo.
+                                eventBloc.add(
+                                  GetAttendeeStatusSummaryEvent(event.id),
+                                );
+                              },
+                            ),
+                          ),
+                    ),
+                  );
+                }
               }
-            }
-          },
+            },
+          ),
         ),
-      ),
+      ), // BlocListener<EventBloc>
     );
   }
 

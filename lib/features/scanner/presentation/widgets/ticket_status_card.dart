@@ -111,6 +111,17 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
+  bool _isDataValid() {
+    if (widget.ticket.enableRunnerNumber &&
+        _runnerNumberController.text.trim().isEmpty) {
+      return false;
+    }
+    if (widget.ticket.enableChipId && _chipIdController.text.trim().isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     String ticketName =
@@ -148,27 +159,6 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                border: Border(
-                  bottom: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Estado de Validación',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  _buildStatusChip(widget.ticket.participantStatus == 'active'),
-                ],
-              ),
-            ),
-
             // Content
             Padding(
               padding: const EdgeInsets.all(16),
@@ -229,39 +219,49 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
+                  if (widget.ticket.enableRunnerNumber ||
+                      widget.ticket.enableChipId) ...[
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                  ],
                   const SizedBox(height: 16),
 
                   // Inputs editables
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
+                  if (widget.ticket.enableRunnerNumber ||
+                      widget.ticket.enableChipId) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          if (widget.ticket.enableRunnerNumber) ...[
+                            _buildInputField(
+                              label: 'Número de Corredor',
+                              controller: _runnerNumberController,
+                              icon: Icons.numbers,
+                            ),
+                            if (widget.ticket.enableChipId)
+                              const SizedBox(height: 16),
+                          ],
+                          if (widget.ticket.enableChipId)
+                            _buildInputField(
+                              label: 'Chip ID',
+                              controller: _chipIdController,
+                              icon: Icons.security,
+                            ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        _buildInputField(
-                          label: 'Número de Corredor',
-                          controller: _runnerNumberController,
-                          icon: Icons.numbers,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildInputField(
-                          label: 'Chip ID',
-                          controller: _chipIdController,
-                          icon: Icons.security,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Información del participante
                   _buildSection(
@@ -279,13 +279,6 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                     isBold: false,
                   ),
                   const SizedBox(height: 12),
-
-                  _buildBadgeSection(
-                    label: 'Estado Participante',
-                    value: participantStatus,
-                    isActive: widget.ticket.participantStatus == 'active',
-                  ),
-                  const SizedBox(height: 16),
                   const Divider(height: 1),
                   const SizedBox(height: 16),
 
@@ -334,64 +327,62 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
           border: Border(top: BorderSide(color: AppColors.border, width: 1)),
         ),
         child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed:
-                      (widget.isSaving ||
-                              widget.ticket.ticketStatus == 'validated')
-                          ? null
-                          : () => widget.onSaveData(
-                            _runnerNumberController.text,
-                            _chipIdController.text,
+          child:
+              widget.ticket.ticketStatus == 'validated'
+                  ? SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: widget.isSaving ? null : widget.onNewScan,
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('Nuevo Escaneo'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  )
+                  : Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              (widget.isSaving || !_isDataValid())
+                                  ? null
+                                  : () => widget.onSaveData(
+                                    _runnerNumberController.text,
+                                    _chipIdController.text,
+                                  ),
+                          icon:
+                              widget.isSaving
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                  : const Icon(Icons.save),
+                          label: const Text(
+                            'Guardar Datos',
+                            style: TextStyle(fontSize: 16),
                           ),
-                  icon:
-                      widget.isSaving
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          )
-                          : const Icon(Icons.save),
-                  label: Text(
-                    widget.ticket.ticketStatus == 'validated'
-                        ? 'Validado'
-                        : 'Guardar Datos',
-                    style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor:
-                        widget.ticket.ticketStatus == 'validated'
-                            ? Colors.grey
-                            : AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: widget.isSaving ? null : widget.onNewScan,
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Nuevo Escaneo'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -528,11 +519,16 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
               label,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
+            const Text(
+              ' *',
+              style: TextStyle(color: AppColors.error, fontSize: 12),
+            ),
           ],
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: label,
             filled: true,

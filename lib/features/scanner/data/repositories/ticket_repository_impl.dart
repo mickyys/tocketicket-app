@@ -1,35 +1,33 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/errors/exceptions.dart';
-import '../../../events/data/datasources/participants_local_data_source.dart';
-import '../../../events/data/models/participant_model.dart';
+import '../../../../core/network/network_info.dart';
 import '../../domain/entities/validation_result.dart';
 import '../../domain/repositories/ticket_repository.dart';
 import '../datasources/ticket_remote_data_source.dart';
 
 class TicketRepositoryImpl implements TicketRepository {
   final TicketRemoteDataSource remoteDataSource;
-  final ParticipantsLocalDataSource localDataSource;
+  final NetworkInfo networkInfo;
 
   TicketRepositoryImpl({
     required this.remoteDataSource,
-    required this.localDataSource,
+    required this.networkInfo,
   });
 
   @override
   Future<Either<Failure, ValidationResult>> checkTicketStatus(
     String validationCode,
   ) async {
-    // Consultar primero en la base de datos local
-    try {
-      final localParticipant = await localDataSource
-          .getParticipantByValidationCode(validationCode);
-      if (localParticipant != null) {
-        return Right(_mapParticipantToValidationResult(localParticipant));
-      }
-    } catch (_) {}
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ValidationFailure(
+          'Se requiere conexión a internet para esta operación.',
+        ),
+      );
+    }
 
-    // Si no existe localmente, ir a la API
+    // Consultar siempre a la API
     try {
       final result = await remoteDataSource.checkTicketStatus(validationCode);
       return Right(_mapToEntity(result));
@@ -44,6 +42,14 @@ class TicketRepositoryImpl implements TicketRepository {
   Future<Either<Failure, ValidationResult>> validateTicketQR(
     String validationCode,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ValidationFailure(
+          'Se requiere conexión a internet para esta operación.',
+        ),
+      );
+    }
+
     try {
       final result = await remoteDataSource.validateTicketQR(validationCode);
       return Right(_mapToEntity(result));
@@ -60,6 +66,14 @@ class TicketRepositoryImpl implements TicketRepository {
     String runnerNumber,
     String chipId,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ValidationFailure(
+          'Se requiere conexión a internet para esta operación.',
+        ),
+      );
+    }
+
     try {
       final result = await remoteDataSource.updateTicketRunnerData(
         validationCode,
@@ -76,10 +90,10 @@ class TicketRepositoryImpl implements TicketRepository {
 
   ValidationResult _mapToEntity(dynamic model) {
     return ValidationResult(
-      eventName: model.eventName,
-      participantName: model.participantName,
-      ticketStatus: model.ticketStatus,
-      categoryName: model.categoryName,
+      eventName: model.eventName ?? '',
+      participantName: model.participantName ?? '',
+      ticketStatus: model.ticketStatus ?? '',
+      categoryName: model.categoryName ?? '',
       ticketName: model.ticketName,
       ticketCorrelative: model.ticketCorrelative,
       participantStatus: model.participantStatus,
@@ -91,26 +105,8 @@ class TicketRepositoryImpl implements TicketRepository {
       chipId: model.chipId,
       validationCode: model.validationCode,
       isValid: model.isValid ?? (model.ticketStatus == 'valid'),
-    );
-  }
-
-  ValidationResult _mapParticipantToValidationResult(ParticipantModel p) {
-    return ValidationResult(
-      eventName: p.eventName,
-      participantName: p.participantName,
-      ticketStatus: p.ticketStatus,
-      categoryName: p.categoryName ?? '',
-      ticketName: p.ticketName,
-      ticketCorrelative: p.ticketCorrelative,
-      participantStatus: p.participantStatus,
-      participantDocumentType: p.participantDocumentType,
-      participantDocumentNumber: p.participantDocumentNumber,
-      validatedAt: p.validatedAt,
-      purchaseDate: p.purchaseDate,
-      runnerNumber: p.runnerNumber,
-      chipId: p.chipId,
-      validationCode: p.validationCode,
-      isValid: p.ticketStatus == 'valid',
+      enableChipId: model.enableChipId ?? false,
+      enableRunnerNumber: model.enableRunnerNumber ?? false,
     );
   }
 }

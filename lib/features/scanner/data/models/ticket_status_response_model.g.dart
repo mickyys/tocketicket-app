@@ -30,6 +30,8 @@ TicketStatusResponseModel _$TicketStatusResponseModelFromJson(
   runnerNumber: json['runnerNumber'] as String?,
   chipId: json['chipId'] as String?,
   validationCode: json['validationCode'] as String?,
+  enableChipId: json['enableChipId'] as bool?,
+  enableRunnerNumber: json['enableRunnerNumber'] as bool?,
 );
 
 Map<String, dynamic> _$TicketStatusResponseModelToJson(
@@ -50,4 +52,6 @@ Map<String, dynamic> _$TicketStatusResponseModelToJson(
   'runnerNumber': instance.runnerNumber,
   'chipId': instance.chipId,
   'validationCode': instance.validationCode,
+  'enableChipId': instance.enableChipId,
+  'enableRunnerNumber': instance.enableRunnerNumber,
 };

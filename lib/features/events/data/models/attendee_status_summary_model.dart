@@ -5,11 +5,15 @@ class AttendeeStatusSummaryModel extends AttendeeStatusSummary {
     required int confirmed,
     required int unconfirmed,
     required int total,
+    bool? enableChipId,
+    bool? enableRunnerNumber,
     List<CategoryScanInfoModel>? byCategory,
   }) : super(
          confirmed: confirmed,
          unconfirmed: unconfirmed,
          total: total,
+         enableChipId: enableChipId,
+         enableRunnerNumber: enableRunnerNumber,
          byCategory: byCategory,
        );
 
@@ -18,6 +22,8 @@ class AttendeeStatusSummaryModel extends AttendeeStatusSummary {
       confirmed: json['confirmed'] ?? 0,
       unconfirmed: json['unconfirmed'] ?? 0,
       total: json['total'] ?? 0,
+      enableChipId: json['enableChipId'],
+      enableRunnerNumber: json['enableRunnerNumber'],
       byCategory:
           json['byCategory'] != null
               ? (json['byCategory'] as List)

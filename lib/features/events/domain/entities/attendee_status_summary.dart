@@ -4,17 +4,28 @@ class AttendeeStatusSummary extends Equatable {
   final int confirmed;
   final int unconfirmed;
   final int total;
+  final bool? enableChipId;
+  final bool? enableRunnerNumber;
   final List<CategoryScanInfo>? byCategory;
 
   const AttendeeStatusSummary({
     required this.confirmed,
     required this.unconfirmed,
     required this.total,
+    this.enableChipId,
+    this.enableRunnerNumber,
     this.byCategory,
   });
 
   @override
-  List<Object?> get props => [confirmed, unconfirmed, total, byCategory];
+  List<Object?> get props => [
+    confirmed,
+    unconfirmed,
+    total,
+    enableChipId,
+    enableRunnerNumber,
+    byCategory,
+  ];
 }
 
 class CategoryScanInfo extends Equatable {

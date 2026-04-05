@@ -7,7 +7,11 @@ class SearchParticipants {
 
   SearchParticipants({required this.repository});
 
-  Future<Either<Failure, List<dynamic>>> call(String eventId, String query) {
-    return repository.searchParticipants(eventId, query);
+  Future<Either<Failure, List<dynamic>>> call(
+    String eventId,
+    String token,
+    String query,
+  ) {
+    return repository.searchParticipants(eventId, token, query);
   }
 }

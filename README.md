@@ -149,7 +149,67 @@ Basados en el backend Tocket Ticket:
 
 ## 🚀 Despliegue y Distribución
 
-### 📱 TestFlight (iOS)
+### � Build Android — Producción
+
+#### APK (instalación directa)
+```bash
+flutter build apk --flavor prod --release --dart-define=ENVIRONMENT=prod
+```
+Salida: `build/app/outputs/flutter-apk/app-prod-release.apk`
+
+#### AAB (Google Play Store)
+```bash
+flutter build appbundle --flavor prod --release --dart-define=ENVIRONMENT=prod
+```
+Salida: `build/app/outputs/bundle/prodRelease/app-prod-release.aab`
+
+> **Requisito:** El archivo `android/key.properties` debe existir con las credenciales del keystore (ver `android/key.properties.example`).
+
+---
+
+### 🍎 Build iOS — Producción
+
+#### Requisitos previos
+- macOS con Xcode instalado
+- Apple Developer account con provisioning profiles configurados
+- `YOUR_TEAM_ID` en `ios/ExportOptions-TestFlight.plist` e `ios/ExportOptions.plist`
+
+#### Compilación para Archive en Xcode (recomendado)
+
+Usa este script en lugar de ejecutar `flutter build ios` manualmente. Incrementa automáticamente el build number en `pubspec.yaml`, compila y deja todo listo para archivar:
+
+```bash
+./scripts/build_ios_release.sh
+```
+
+Luego en Xcode: **Product → Archive**
+
+> El script incrementa el `+N` del `pubspec.yaml` y regenera `ios/Flutter/Generated.xcconfig` con el nuevo `FLUTTER_BUILD_NUMBER`. Xcode lee ese valor al archivar.
+
+#### Compilación manual (sin incrementar build number)
+```bash
+flutter build ios --dart-define=ENVIRONMENT=prod --release
+```
+
+#### 1. Compilar el archivo `.ipa`
+```bash
+flutter build ipa --flavor prod --release --dart-define=ENVIRONMENT=prod \
+  --export-options-plist=ios/ExportOptions-TestFlight.plist
+```
+Salida: `build/ios/ipa/tocke.ipa`
+
+#### 2. Subir a TestFlight (automático con el plist `upload`)
+El plist `ExportOptions-TestFlight.plist` tiene `destination=upload`, por lo que el `.ipa` se sube directamente a App Store Connect al ejecutar el comando anterior.
+
+#### 3. Solo exportar `.ipa` sin subir
+```bash
+flutter build ipa --flavor prod --release --dart-define=ENVIRONMENT=prod \
+  --export-options-plist=ios/ExportOptions.plist
+```
+
+---
+
+### �📱 TestFlight (iOS)
 La aplicación está configurada para despliegue automático en TestFlight a través de GitHub Actions:
 
 #### Build Automático

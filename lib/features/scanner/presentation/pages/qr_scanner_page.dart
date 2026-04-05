@@ -232,6 +232,20 @@ class _QRScannerViewState extends State<QRScannerView> {
       _isScanning = true;
       _lastScanTime = null;
     });
+    // Resetear el estado del bloc para que pueda reaccionar al siguiente escaneo
+    _scannerBloc.add(ResetScannerEvent());
+    // Detener primero y luego reiniciar para garantizar que el controlador
+    // quede activo tanto en iOS (que puede seguir corriendo) como en Android
+    // (que se pausa al navegar a otra ruta).
+    _scannerController
+        ?.stop()
+        .then((_) {
+          if (mounted) _scannerController?.start();
+        })
+        .catchError((e) {
+          debugPrint('Error stopping scanner: $e');
+          if (mounted) _scannerController?.start();
+        });
   }
 
   void _showManualCodeDialog() {

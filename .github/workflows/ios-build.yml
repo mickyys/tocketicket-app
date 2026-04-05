@@ -52,6 +52,12 @@ jobs:
         cd ios
         pod install --repo-update
 
+    - name: 🔢 Set build number
+      run: |
+        SEMANTIC_VERSION=$(grep "version: " pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+        sed -i '' "s/version: .*/version: $SEMANTIC_VERSION+${{ github.run_number }}/" pubspec.yaml
+        echo "📦 Version set to: $SEMANTIC_VERSION+${{ github.run_number }}"
+
     - name: 🧹 Clean previous builds
       run: flutter clean
 

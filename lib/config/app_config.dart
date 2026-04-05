@@ -8,7 +8,7 @@ class AppConfig {
 
   static const String _envString = String.fromEnvironment(
     'ENVIRONMENT',
-    defaultValue: 'local',
+    defaultValue: 'dev',
   );
 
   static void setEnvironment() {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:tocke/features/events/domain/usecases/get_attendee_status_summary.dart';
 import 'package:tocke/features/events/presentation/pages/event_detail_page.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -10,8 +11,6 @@ import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../events/presentation/bloc/event_bloc.dart';
 import '../../../events/domain/usecases/get_events.dart';
-import '../../../events/domain/usecases/synchronize_event_attendees.dart';
-import '../../../events/domain/usecases/synchronize_participants.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
 
@@ -36,12 +35,23 @@ class _HomePageContentState extends State<_HomePageContent> {
   Map<String, dynamic>? userData;
   Map<String, dynamic>? organizerProfile;
   int _scannedCount = 0;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _loadScannedCount();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${info.version}';
+      });
+    }
   }
 
   Future<void> _loadScannedCount() async {
@@ -318,6 +328,17 @@ class _HomePageContentState extends State<_HomePageContent> {
 
                     // Lista de eventos reales
                     _buildEventsList(events),
+                    const SizedBox(height: 16),
+                    if (_appVersion.isNotEmpty)
+                      Center(
+                        child: Text(
+                          _appVersion,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

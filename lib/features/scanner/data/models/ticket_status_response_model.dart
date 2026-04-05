@@ -21,6 +21,8 @@ class TicketStatusResponseModel extends Equatable {
   final String? runnerNumber;
   final String? chipId;
   final String? validationCode;
+  final bool? enableChipId;
+  final bool? enableRunnerNumber;
 
   const TicketStatusResponseModel({
     required this.eventName,
@@ -38,6 +40,8 @@ class TicketStatusResponseModel extends Equatable {
     this.runnerNumber,
     this.chipId,
     this.validationCode,
+    this.enableChipId,
+    this.enableRunnerNumber,
   });
 
   factory TicketStatusResponseModel.fromJson(Map<String, dynamic> json) =>
@@ -64,6 +68,8 @@ class TicketStatusResponseModel extends Equatable {
       chipId: chipId,
       validationCode: validationCode ?? '',
       isValid: ticketStatus == 'valid',
+      enableChipId: enableChipId ?? false,
+      enableRunnerNumber: enableRunnerNumber ?? false,
     );
   }
 
@@ -84,5 +90,7 @@ class TicketStatusResponseModel extends Equatable {
     runnerNumber,
     chipId,
     validationCode,
+    enableChipId,
+    enableRunnerNumber,
   ];
 }

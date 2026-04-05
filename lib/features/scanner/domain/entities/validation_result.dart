@@ -17,6 +17,8 @@ class ValidationResult extends Equatable {
   final String? chipId;
   final String? validationCode;
   final bool isValid;
+  final bool enableChipId;
+  final bool enableRunnerNumber;
 
   const ValidationResult({
     required this.eventName,
@@ -35,6 +37,8 @@ class ValidationResult extends Equatable {
     this.chipId,
     this.validationCode,
     this.isValid = true,
+    this.enableChipId = false,
+    this.enableRunnerNumber = false,
   });
 
   @override
@@ -55,5 +59,7 @@ class ValidationResult extends Equatable {
     chipId,
     validationCode,
     isValid,
+    enableChipId,
+    enableRunnerNumber,
   ];
 }
