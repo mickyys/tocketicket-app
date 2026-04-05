@@ -11,13 +11,7 @@ abstract class ParticipantsRepository {
 
   Future<Either<Failure, List<dynamic>>> searchParticipants(
     String eventId,
+    String token,
     String query,
   );
-
-  Future<Either<Failure, void>> synchronizeParticipants(
-    String eventId,
-    String token,
-  );
-
-  Future<Either<Failure, void>> clearLocalCache(String eventId);
 }

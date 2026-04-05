@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/participant.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
-import '../../domain/usecases/synchronize_participants.dart';
-import '../../domain/usecases/clear_local_cache.dart';
 
 // Events
 abstract class ParticipantEvent extends Equatable {
@@ -35,25 +33,17 @@ class FetchParticipantsEvent extends ParticipantEvent {
 
 class SearchParticipantsEvent extends ParticipantEvent {
   final String eventId;
+  final String token;
   final String query;
 
-  const SearchParticipantsEvent({required this.eventId, required this.query});
-
-  @override
-  List<Object> get props => [eventId, query];
-}
-
-class SynchronizeParticipantsEvent extends ParticipantEvent {
-  final String eventId;
-  final String token;
-
-  const SynchronizeParticipantsEvent({
+  const SearchParticipantsEvent({
     required this.eventId,
     required this.token,
+    required this.query,
   });
 
   @override
-  List<Object> get props => [eventId, token];
+  List<Object> get props => [eventId, token, query];
 }
 
 class ClearLocalCacheEvent extends ParticipantEvent {
@@ -121,19 +111,13 @@ class ParticipantError extends ParticipantState {
 class ParticipantBloc extends Bloc<ParticipantEvent, ParticipantState> {
   final GetEventParticipantsDetailed getEventParticipantsDetailed;
   final SearchParticipants searchParticipants;
-  final SynchronizeParticipants synchronizeParticipants;
-  final ClearLocalCache clearLocalCache;
 
   ParticipantBloc({
     required this.getEventParticipantsDetailed,
     required this.searchParticipants,
-    required this.synchronizeParticipants,
-    required this.clearLocalCache,
   }) : super(const ParticipantInitial()) {
     on<FetchParticipantsEvent>(_onFetchParticipants);
     on<SearchParticipantsEvent>(_onSearchParticipants);
-    on<SynchronizeParticipantsEvent>(_onSynchronizeParticipants);
-    on<ClearLocalCacheEvent>(_onClearLocalCache);
   }
 
   Future<void> _onFetchParticipants(
@@ -195,7 +179,11 @@ class ParticipantBloc extends Bloc<ParticipantEvent, ParticipantState> {
   ) async {
     emit(const ParticipantLoading());
 
-    final result = await searchParticipants(event.eventId, event.query);
+    final result = await searchParticipants(
+      event.eventId,
+      event.token,
+      event.query,
+    );
 
     result.fold((failure) => emit(ParticipantError(message: failure.message)), (
       searchResults,
@@ -215,61 +203,5 @@ class ParticipantBloc extends Bloc<ParticipantEvent, ParticipantState> {
         ),
       );
     });
-  }
-
-  Future<void> _onSynchronizeParticipants(
-    SynchronizeParticipantsEvent event,
-    Emitter<ParticipantState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is ParticipantLoaded) {
-      emit(currentState.copyWith(isLoadingMore: true));
-    }
-
-    final result = await synchronizeParticipants(event.eventId, event.token);
-
-    result.fold(
-      (failure) {
-        if (currentState is ParticipantLoaded) {
-          emit(currentState.copyWith(isLoadingMore: false));
-        }
-        emit(
-          ParticipantError(message: 'Error sincronizando: ${failure.message}'),
-        );
-      },
-      (_) {
-        // Después de sincronizar, recargar participantes
-        add(
-          FetchParticipantsEvent(
-            eventId: event.eventId,
-            token: event.token,
-            page: 1,
-            pageSize: 1000,
-            isLoadMore: false,
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _onClearLocalCache(
-    ClearLocalCacheEvent event,
-    Emitter<ParticipantState> emit,
-  ) async {
-    try {
-      emit(const ParticipantLoading());
-      final result = await clearLocalCache(event.eventId);
-
-      result.fold(
-        (failure) => emit(
-          ParticipantError(
-            message: 'Error al limpiar caché: ${failure.message}',
-          ),
-        ),
-        (_) => emit(const ParticipantInitial()),
-      );
-    } catch (e) {
-      emit(ParticipantError(message: 'Error inesperado: ${e.toString()}'));
-    }
   }
 }

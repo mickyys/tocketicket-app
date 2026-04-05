@@ -14,8 +14,6 @@ import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
-import '../../domain/usecases/synchronize_participants.dart';
-import '../../domain/usecases/clear_local_cache.dart';
 import '../bloc/participant_bloc.dart';
 import '../bloc/event_bloc.dart';
 
@@ -39,9 +37,6 @@ class EventParticipantsPage extends StatelessWidget {
                 getEventParticipantsDetailed:
                     context.read<GetEventParticipantsDetailed>(),
                 searchParticipants: context.read<SearchParticipants>(),
-                synchronizeParticipants:
-                    context.read<SynchronizeParticipants>(),
-                clearLocalCache: context.read<ClearLocalCache>(),
               ),
         ),
         BlocProvider<EventBloc>.value(value: eventBloc),
@@ -76,17 +71,21 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
     _loadParticipants();
   }
 
-  void _onSearchChanged() {
+  void _onSearchChanged() async {
     if (_searchController.text.isEmpty && _isSearchActive) {
       setState(() => _isSearchActive = false);
       _loadParticipants();
     } else if (_searchController.text.isNotEmpty) {
-      context.read<ParticipantBloc>().add(
-        SearchParticipantsEvent(
-          eventId: widget.event.id,
-          query: _searchController.text,
-        ),
-      );
+      final token = await AuthService.getAccessToken() ?? '';
+      if (mounted) {
+        context.read<ParticipantBloc>().add(
+          SearchParticipantsEvent(
+            eventId: widget.event.id,
+            token: token,
+            query: _searchController.text,
+          ),
+        );
+      }
     }
   }
 

@@ -15,8 +15,6 @@ import '../../domain/entities/participant.dart';
 import '../../domain/entities/attendee_status_summary.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
-import '../../domain/usecases/synchronize_participants.dart';
-import '../../domain/usecases/clear_local_cache.dart';
 import '../bloc/participant_bloc.dart';
 import '../bloc/event_bloc.dart';
 
@@ -43,8 +41,6 @@ class EventDetailPage extends StatelessWidget {
               getEventParticipantsDetailed:
                   context.read<GetEventParticipantsDetailed>(),
               searchParticipants: context.read<SearchParticipants>(),
-              synchronizeParticipants: context.read<SynchronizeParticipants>(),
-              clearLocalCache: context.read<ClearLocalCache>(),
             )..add(
               FetchParticipantsEvent(
                 eventId: event.id,
@@ -89,33 +85,15 @@ class _EventDetailViewState extends State<EventDetailView> {
   int _unconfirmedCount = 0;
   int _totalAttendees = 0;
   List<CategoryScanInfo>? _byCategory;
+  bool? _enableChipId;
+  bool? _enableRunnerNumber;
   bool _summaryLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    debugPrint(
-      '[EventDetail] [3] initState: programando sincronización de participantes (postFrameCallback)',
-    );
     _loadLastScan();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncParticipants());
-  }
-
-  Future<void> _syncParticipants() async {
-    if (!mounted) return;
-    debugPrint(
-      '[EventDetail] [4] _syncParticipants: lanzando SynchronizeParticipantsEvent',
-    );
-    setState(() {
-      _isSyncing = true;
-      _syncError = false;
-    });
-    final token = await AuthService.getAccessToken() ?? '';
-    if (mounted) {
-      context.read<ParticipantBloc>().add(
-        SynchronizeParticipantsEvent(eventId: widget.event.id, token: token),
-      );
-    }
+    _isSyncing = false;
   }
 
   void _onParticipantStateChange(BuildContext context, ParticipantState state) {
@@ -173,6 +151,8 @@ class _EventDetailViewState extends State<EventDetailView> {
               _unconfirmedCount = eventState.summary.unconfirmed;
               _totalAttendees = eventState.summary.total;
               _byCategory = eventState.summary.byCategory;
+              _enableChipId = eventState.summary.enableChipId;
+              _enableRunnerNumber = eventState.summary.enableRunnerNumber;
               _summaryLoaded = true;
             });
           }
@@ -269,15 +249,21 @@ class _EventDetailViewState extends State<EventDetailView> {
                           ? (confirmedCount / totalAttendees * 100).round()
                           : 0;
 
+                  final isChipEnabled = _enableChipId ?? true;
+                  final isRunnerEnabled = _enableRunnerNumber ?? true;
+                  final showPendingChip = isChipEnabled || isRunnerEnabled;
+
                   final pendingChip =
-                      participants
-                          .where(
-                            (p) =>
-                                (p.ticketStatus == 'validated' ||
-                                    p.validatedAt != null) &&
-                                (p.chipId == null || p.chipId!.isEmpty),
-                          )
-                          .length;
+                      showPendingChip
+                          ? participants
+                              .where(
+                                (p) =>
+                                    (p.ticketStatus == 'validated' ||
+                                        p.validatedAt != null) &&
+                                    (p.chipId == null || p.chipId!.isEmpty),
+                              )
+                              .length
+                          : 0;
 
                   // Último escaneo — leído desde ReadHistoryService en initState
                   final lastScanText = _lastScanText;
@@ -337,12 +323,13 @@ class _EventDetailViewState extends State<EventDetailView> {
                                 value: lastScanText,
                                 label: 'Último escaneo',
                               ),
-                              _buildStatCard(
-                                icon: Icons.warning_amber_rounded,
-                                value: '$pendingChip',
-                                label: 'Sin chip/corredor',
-                                color: pendingChip > 0 ? Colors.amber : null,
-                              ),
+                              if (showPendingChip)
+                                _buildStatCard(
+                                  icon: Icons.warning_amber_rounded,
+                                  value: '$pendingChip',
+                                  label: 'Sin chip/corredor',
+                                  color: pendingChip > 0 ? Colors.amber : null,
+                                ),
                               _buildStatCard(
                                 icon: Icons.people_outline,
                                 value: '$unconfirmedCount',
@@ -350,11 +337,13 @@ class _EventDetailViewState extends State<EventDetailView> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          if (showPendingChip) const SizedBox(height: 16),
 
                           // Alerta pendientes
-                          if (pendingChip > 0) _buildPendingAlert(pendingChip),
-                          const SizedBox(height: 24),
+                          if (showPendingChip && pendingChip > 0)
+                            _buildPendingAlert(pendingChip),
+                          if (showPendingChip && pendingChip > 0)
+                            const SizedBox(height: 24),
 
                           // Por Categoría
                           if (byCategoryFromSummary != null &&

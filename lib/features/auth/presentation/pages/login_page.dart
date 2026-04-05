@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage>
   bool _isLoading = false;
   bool _showCodeInput = false;
   bool _rememberMe = false;
+  bool _obscurePassword = true;
   double _tabHeight = 450.0;
 
   @override
@@ -464,7 +465,7 @@ class _LoginPageState extends State<LoginPage>
           TextField(
             controller: _passwordController,
             enabled: !_isLoading,
-            obscureText: true,
+            obscureText: _obscurePassword,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: '••••••••',
@@ -473,6 +474,20 @@ class _LoginPageState extends State<LoginPage>
                 Icons.key_outlined,
                 color: AppColors.textSecondary,
                 size: 20,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
               ),
               filled: true,
               fillColor: AppColors.background,

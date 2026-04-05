@@ -4,19 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
-import '../database/participant_database.dart';
 import '../../config/app_config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../network/network_info.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
 import '../../features/events/domain/usecases/get_events.dart';
-import '../../features/events/domain/usecases/synchronize_event_attendees.dart';
 import '../../features/events/domain/usecases/get_event_participants_detailed.dart';
 import '../../features/events/domain/usecases/search_participants.dart';
-import '../../features/events/domain/usecases/synchronize_participants.dart';
 import '../../features/events/domain/usecases/get_attendee_status_summary.dart';
-import '../../features/events/domain/usecases/clear_local_cache.dart';
 import '../../features/events/data/datasources/participants_remote_data_source.dart';
-import '../../features/events/data/datasources/participants_local_data_source.dart';
 import '../../features/events/data/repositories/participants_repository_impl.dart';
 import '../../features/events/domain/repositories/participants_repository.dart';
 import '../../features/scanner/data/datasources/ticket_remote_data_source.dart';
@@ -62,6 +59,11 @@ class DependencyInjection {
       },
     ),
 
+    // Network Info
+    RepositoryProvider<NetworkInfo>(
+      create: (context) => NetworkInfoImpl(Connectivity()),
+    ),
+
     // Database Helper
     RepositoryProvider<DatabaseHelper>(create: (_) => DatabaseHelper.instance),
 
@@ -85,26 +87,18 @@ class DependencyInjection {
           ),
     ),
 
-    RepositoryProvider<ParticipantsLocalDataSource>(
-      create:
-          (context) =>
-              ParticipantsLocalDataSourceImpl(database: ParticipantDatabase()),
-    ),
-
     // Repositories
     RepositoryProvider<EventRepository>(
       create:
-          (context) => EventRepositoryImpl(
-            eventService: context.read<EventService>(),
-            databaseHelper: context.read<DatabaseHelper>(),
-          ),
+          (context) =>
+              EventRepositoryImpl(eventService: context.read<EventService>()),
     ),
 
     RepositoryProvider<TicketRepository>(
       create:
           (context) => TicketRepositoryImpl(
             remoteDataSource: context.read<TicketRemoteDataSource>(),
-            localDataSource: context.read<ParticipantsLocalDataSource>(),
+            networkInfo: context.read<NetworkInfo>(),
           ),
     ),
 
@@ -112,7 +106,7 @@ class DependencyInjection {
       create:
           (context) => ParticipantsRepositoryImpl(
             remoteDataSource: context.read<ParticipantsRemoteDataSource>(),
-            localDataSource: context.read<ParticipantsLocalDataSource>(),
+            networkInfo: context.read<NetworkInfo>(),
           ),
     ),
 
@@ -125,12 +119,6 @@ class DependencyInjection {
       create:
           (context) =>
               GetAttendeeStatusSummary(context.read<EventRepository>()),
-    ),
-
-    RepositoryProvider<SynchronizeEventAttendees>(
-      create:
-          (context) =>
-              SynchronizeEventAttendees(context.read<EventRepository>()),
     ),
 
     RepositoryProvider<CheckTicketStatus>(
@@ -156,20 +144,6 @@ class DependencyInjection {
     RepositoryProvider<SearchParticipants>(
       create:
           (context) => SearchParticipants(
-            repository: context.read<ParticipantsRepository>(),
-          ),
-    ),
-
-    RepositoryProvider<SynchronizeParticipants>(
-      create:
-          (context) => SynchronizeParticipants(
-            repository: context.read<ParticipantsRepository>(),
-          ),
-    ),
-
-    RepositoryProvider<ClearLocalCache>(
-      create:
-          (context) => ClearLocalCache(
             repository: context.read<ParticipantsRepository>(),
           ),
     ),

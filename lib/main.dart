@@ -17,8 +17,6 @@ import 'core/services/crashlytics_service.dart'; // Reactivado con implementaciÃ
 import 'core/di/dependency_injection.dart';
 import 'features/events/domain/usecases/get_attendee_status_summary.dart';
 import 'features/events/domain/usecases/get_events.dart';
-import 'features/events/domain/usecases/synchronize_event_attendees.dart';
-import 'features/events/domain/usecases/synchronize_participants.dart';
 import 'features/events/presentation/bloc/event_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
@@ -83,10 +81,6 @@ class TocketValidatorApp extends StatelessWidget {
           BlocProvider(
             create:
                 (context) => EventBloc(
-                  synchronizeEventAttendees:
-                      context.read<SynchronizeEventAttendees>(),
-                  synchronizeParticipants:
-                      context.read<SynchronizeParticipants>(),
                   getEvents: context.read<GetEvents>(),
                   getAttendeeStatusSummary:
                       context.read<GetAttendeeStatusSummary>(),

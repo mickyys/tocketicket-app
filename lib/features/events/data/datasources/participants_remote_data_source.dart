@@ -7,6 +7,12 @@ abstract class ParticipantsRemoteDataSource {
     int page = 1,
     int pageSize = 10,
   });
+
+  Future<List<dynamic>> searchParticipants(
+    String eventId,
+    String token,
+    String query,
+  );
 }
 
 class ParticipantsRemoteDataSourceImpl implements ParticipantsRemoteDataSource {
@@ -26,6 +32,36 @@ class ParticipantsRemoteDataSourceImpl implements ParticipantsRemoteDataSource {
       final response = await dio.get(
         '$baseUrl/organizer/events/$eventId/participants/detailed',
         queryParameters: {'page': page, 'pageSize': pageSize},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Error: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<dynamic>> searchParticipants(
+    String eventId,
+    String token,
+    String query,
+  ) async {
+    try {
+      final response = await dio.get(
+        '$baseUrl/organizer/events/$eventId/participants/search',
+        queryParameters: {'query': query},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',

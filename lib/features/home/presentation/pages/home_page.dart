@@ -11,8 +11,6 @@ import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../events/presentation/bloc/event_bloc.dart';
 import '../../../events/domain/usecases/get_events.dart';
-import '../../../events/domain/usecases/synchronize_event_attendees.dart';
-import '../../../events/domain/usecases/synchronize_participants.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
 
