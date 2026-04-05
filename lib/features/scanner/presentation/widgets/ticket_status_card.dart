@@ -159,27 +159,6 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                border: Border(
-                  bottom: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Estado de Validación',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  _buildStatusChip(widget.ticket.participantStatus == 'active'),
-                ],
-              ),
-            ),
-
             // Content
             Padding(
               padding: const EdgeInsets.all(16),
@@ -300,13 +279,6 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                     isBold: false,
                   ),
                   const SizedBox(height: 12),
-
-                  _buildBadgeSection(
-                    label: 'Estado Participante',
-                    value: participantStatus,
-                    isActive: widget.ticket.participantStatus == 'active',
-                  ),
-                  const SizedBox(height: 16),
                   const Divider(height: 1),
                   const SizedBox(height: 16),
 
