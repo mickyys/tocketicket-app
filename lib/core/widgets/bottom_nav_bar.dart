@@ -52,29 +52,30 @@ class BottomNavBar extends StatelessWidget {
   }) {
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Icon(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
                 item.icon,
                 size: 24,
                 color: isActive ? AppColors.primary : AppColors.textSecondary,
               ),
-            ),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
+              const SizedBox(height: 4),
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isActive ? AppColors.primary : AppColors.textSecondary,
+                ),
               ),
-            ),
-            if (isActive)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
+              const SizedBox(height: 4),
+              Opacity(
+                opacity: isActive ? 1 : 0,
                 child: Container(
                   width: 32,
                   height: 2,
@@ -84,7 +85,8 @@ class BottomNavBar extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:tocke/features/events/domain/usecases/get_attendee_status_summary.dart';
 import 'package:tocke/features/events/presentation/pages/event_detail_page.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -10,9 +9,9 @@ import '../../../../core/widgets/index.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../events/presentation/bloc/event_bloc.dart';
-import '../../../events/domain/usecases/get_events.dart';
-import '../../../scanner/presentation/pages/scan_history_page.dart';
-import '../../../scanner/presentation/pages/qr_scanner_page.dart';
+import '../../../search/data/services/rut_ticket_search_service.dart';
+import '../../../search/presentation/pages/rut_ticket_search_page.dart';
+import '../../../events/presentation/pages/participant_search_edit_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -31,7 +30,6 @@ class _HomePageContent extends StatefulWidget {
 }
 
 class _HomePageContentState extends State<_HomePageContent> {
-  int _selectedIndex = 0;
   Map<String, dynamic>? userData;
   Map<String, dynamic>? organizerProfile;
   int _scannedCount = 0;
@@ -94,47 +92,40 @@ class _HomePageContentState extends State<_HomePageContent> {
     }
   }
 
-  void _onNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        // Eventos - stay on home
-        break;
-      case 1:
-        // Scanner QR
-        Navigator.of(context)
-            .push(
-              MaterialPageRoute(
-                builder:
-                    (context) => QRScannerPage(onScanSaved: _loadScannedCount),
-              ),
-            )
-            .then((_) {
-              // Recargar contador cuando vuelve del scanner
-              _loadScannedCount();
-            });
-        break;
-      case 2:
-        // History
-        Navigator.of(context)
-            .push(
-              MaterialPageRoute(builder: (context) => const ScanHistoryPage()),
-            )
-            .then((_) {
-              // Recargar contador cuando vuelve del historial
-              _loadScannedCount();
-            });
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: _AppDrawer(
+        organizerName: _organizerName,
+        isTeamMember: _isTeamMember,
+        onSearchByRut: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (context) => RutTicketSearchPage(
+                    searchService: context.read<RutTicketSearchService>(),
+                  ),
+            ),
+          );
+        },
+        onParticipantEdit: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (context) => ParticipantSearchEditPage(
+                    searchService: context.read<RutTicketSearchService>(),
+                  ),
+            ),
+          );
+        },
+        onLogout: () async {
+          Navigator.of(context).pop();
+          await _handleLogout();
+        },
+      ),
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -399,6 +390,85 @@ class _HomePageContentState extends State<_HomePageContent> {
           ),
         );
       }),
+    );
+  }
+}
+
+class _AppDrawer extends StatelessWidget {
+  final String organizerName;
+  final bool isTeamMember;
+  final VoidCallback onSearchByRut;
+  final VoidCallback onParticipantEdit;
+  final VoidCallback onLogout;
+
+  const _AppDrawer({
+    required this.organizerName,
+    required this.isTeamMember,
+    required this.onSearchByRut,
+    required this.onParticipantEdit,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Drawer(
+      backgroundColor: AppColors.surface,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.border.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset('assets/images/logo.jpg', height: 36),
+                  const SizedBox(height: 12),
+                  Text(
+                    isTeamMember ? organizerName : 'Validador',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Accesos rápidos',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.search, color: AppColors.primary),
+              title: const Text('Buscar por RUT'),
+              subtitle: const Text('Tickets en eventos permitidos'),
+              onTap: onSearchByRut,
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_note, color: AppColors.primary),
+              title: const Text('Modificar Participante'),
+              subtitle: const Text('Editar datos por RUT/Pasaporte'),
+              onTap: onParticipantEdit,
+            ),
+            const Spacer(),
+            const Divider(color: AppColors.border, height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.textSecondary),
+              title: const Text('Cerrar sesión'),
+              onTap: onLogout,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

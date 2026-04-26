@@ -43,6 +43,32 @@ class DocumentFormatter {
     return '$formattedNumber-$dv';
   }
 
+  /// Valida un RUT chileno (formato y dígito verificador)
+  static bool validateRut(String rut) {
+    String cleanRut = cleanDocument(rut);
+
+    if (cleanRut.length < 8 || cleanRut.length > 9) {
+      return false;
+    }
+
+    try {
+      String dv = cleanRut.substring(cleanRut.length - 1).toUpperCase();
+      int number = int.parse(cleanRut.substring(0, cleanRut.length - 1));
+
+      int m = 0, s = 1;
+      for (; number != 0; number = (number / 10).floor()) {
+        s = (s + number % 10 * (9 - m++ % 6)) % 11;
+      }
+
+      String calculatedDv =
+          (s != 0) ? (s - 1).toString() : 'K';
+      
+      return dv == calculatedDv;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Obtiene el tipo de documento formateado para mostrar
   static String getDocumentTypeDisplay(String documentType) {
     switch (documentType.toLowerCase()) {

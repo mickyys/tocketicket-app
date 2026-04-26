@@ -27,6 +27,8 @@ class AppConstants {
   static String get eventsEndpoint => '${AppConfig.baseUrl}/events';
   static String get organizerEventsEndpoint =>
       '${AppConfig.baseUrl}/organizer/events';
+  static String get organizerTicketSearchByDocumentEndpoint =>
+      '${AppConfig.baseUrl}/organizer/tickets/search-by-document';
   static String get publicEventEndpoint => '${AppConfig.baseUrl}/public/events';
 
   // Validation Endpoints

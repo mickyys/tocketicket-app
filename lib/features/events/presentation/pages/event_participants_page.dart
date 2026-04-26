@@ -5,17 +5,20 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../domain/entities/event.dart';
+import '../../domain/entities/participant.dart';
 import '../../../scanner/presentation/pages/qr_scanner_page.dart';
 import '../../../scanner/presentation/pages/scan_history_page.dart';
 import '../../../scanner/presentation/bloc/scanner_bloc.dart';
 import '../../../scanner/domain/usecases/check_ticket_status.dart';
 import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
 import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
-import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
+import '../../domain/usecases/change_participant.dart';
 import '../bloc/participant_bloc.dart';
 import '../bloc/event_bloc.dart';
+import 'edit_participant_page.dart';
 
 class EventParticipantsPage extends StatelessWidget {
   final Event event;
@@ -37,6 +40,7 @@ class EventParticipantsPage extends StatelessWidget {
                 getEventParticipantsDetailed:
                     context.read<GetEventParticipantsDetailed>(),
                 searchParticipants: context.read<SearchParticipants>(),
+                changeParticipant: context.read<ChangeParticipant>(),
               ),
         ),
         BlocProvider<EventBloc>.value(value: eventBloc),
@@ -60,6 +64,7 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
   late ScrollController _verticalScroller;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearchActive = false;
+  bool _isOrganizer = false;
 
   @override
   void initState() {
@@ -68,7 +73,18 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
     _verticalScroller = ScrollController();
     _verticalScroller.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
+    _checkUserRole();
     _loadParticipants();
+  }
+
+  Future<void> _checkUserRole() async {
+    final userData = await AuthService.getUserData();
+    if (userData != null) {
+      final role = userData['role'] ?? '';
+      setState(() {
+        _isOrganizer = role == 'organizer' || role == 'admin';
+      });
+    }
   }
 
   void _onSearchChanged() async {
@@ -92,14 +108,9 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
   Future<void> _handleSynchronize() async {
     final token = await AuthService.getAccessToken() ?? '';
     if (mounted && token.isNotEmpty) {
-      // Notificar al EventBloc que está sincronizando
-      context.read<EventBloc>().add(
-        SynchronizeEventAttendeesEvent(widget.event.id),
-      );
-
       // Disparar sincronización en ParticipantBloc
       context.read<ParticipantBloc>().add(
-        SynchronizeParticipantsEvent(eventId: widget.event.id, token: token),
+        FetchParticipantsEvent(eventId: widget.event.id, token: token),
       );
     }
   }
@@ -209,12 +220,28 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
     return '$formatted-$verificador';
   }
 
-  Future<void> _loadParticipants() async {
+  void _loadParticipants() async {
     final token = await AuthService.getAccessToken() ?? '';
     if (mounted) {
       context.read<ParticipantBloc>().add(
         FetchParticipantsEvent(eventId: widget.event.id, token: token),
       );
+    }
+  }
+
+  void _editParticipant(Participant participant) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => EditParticipantPage(
+              participant: participant,
+              event: widget.event,
+            ),
+      ),
+    );
+
+    if (result == true) {
+      _loadParticipants();
     }
   }
 
@@ -624,7 +651,7 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
 
   Widget _buildParticipantsTable(ParticipantLoaded state) {
     return RefreshIndicator(
-      onRefresh: _loadParticipants,
+      onRefresh: () async => _loadParticipants(),
       child: SingleChildScrollView(
         controller: _verticalScroller,
         child: Padding(
@@ -716,6 +743,10 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
                         label: const Text('Validado'),
                         onSort: (index, ascending) {},
                       ),
+                      if (_isOrganizer)
+                        const DataColumn(
+                          label: Text('Acciones'),
+                        ),
                     ],
                     rows: List<DataRow>.generate(state.participants.length, (
                       index,
@@ -789,6 +820,18 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
                                   ),
                                 ),
                           ),
+                          if (_isOrganizer)
+                            DataCell(
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
+                                onPressed: () => _editParticipant(participant),
+                                tooltip: 'Editar Participante',
+                              ),
+                            ),
                         ],
                       );
                     }),

@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/http_header_utils.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/errors/exceptions.dart';
@@ -9,18 +8,8 @@ import '../models/validation_result_model.dart';
 import '../models/ticket_status_response_model.dart';
 
 abstract class TicketRemoteDataSource {
-  /// Consulta el estado de un ticket usando el código de validación
-  /// Endpoint: GET /tickets/status/:validationCode
   Future<ValidationResultModel> checkTicketStatus(String validationCode);
-
-  /// Valida un ticket QR y lo marca como usado
-  /// Endpoint: POST /tickets/validate-qr
-  /// Body: {"validationCode": "code"}
   Future<ValidationResultModel> validateTicketQR(String validationCode);
-
-  /// Actualiza los datos del corredor (número y chip) de un ticket
-  /// Endpoint: POST /tickets/validate-qr
-  /// Body: {"validationCode": "code", "runnerNumber": "123", "chipId": "CHIP123"}
   Future<ValidationResultModel> updateTicketRunnerData(
     String validationCode,
     String runnerNumber,
@@ -29,36 +18,33 @@ abstract class TicketRemoteDataSource {
 }
 
 class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
-  final http.Client client;
+  final Dio dio;
 
-  TicketRemoteDataSourceImpl({required this.client});
+  TicketRemoteDataSourceImpl({required this.dio});
 
   @override
   Future<ValidationResultModel> checkTicketStatus(String validationCode) async {
     try {
-      AppLogger.info('Consultando estado del ticket: $validationCode');
+      AppLogger.info('Consultando estado del ticket (Dio): $validationCode');
 
       final token = await AuthService.getAccessToken();
       if (token == null) {
         throw ServerException('Token de autenticación no disponible');
       }
 
-      final url = '${AppConstants.ticketStatusEndpoint}/$validationCode';
-      AppLogger.debug('URL de consulta: $url');
-
-      final response = await client
-          .get(Uri.parse(url), headers: HttpHeaderUtils.getAuthHeaders(token))
-          .timeout(AppConstants.connectTimeout);
-
-      AppLogger.info('Respuesta del servidor: ${response.statusCode}');
-      AppLogger.debug('Cuerpo de respuesta: ${response.body}');
+      final response = await dio.get(
+        '${AppConstants.ticketStatusEndpoint}/$validationCode',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
         final ticketStatusResponse = TicketStatusResponseModel.fromJson(
-          responseData,
+          response.data,
         );
-        // Mapear todos los campos relevantes
         return ValidationResultModel(
           eventName: ticketStatusResponse.eventName,
           participantName: ticketStatusResponse.participantName,
@@ -82,21 +68,14 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
           enableChipId: ticketStatusResponse.enableChipId ?? false,
           enableRunnerNumber: ticketStatusResponse.enableRunnerNumber ?? false,
         );
-      } else if (response.statusCode == 404) {
-        throw ServerException('Ticket no encontrado');
-      } else if (response.statusCode == 401) {
-        throw ServerException('Token de autenticación inválido');
       } else {
-        final responseData = jsonDecode(response.body);
-        throw ServerException(
-          responseData['message'] ?? 'Error al consultar el estado del ticket',
-        );
+        throw ServerException('Error inesperado: ${response.statusCode}');
       }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      rethrow;
     } catch (e) {
-      AppLogger.error('Error consultando estado del ticket: $e');
-      if (e is ServerException) {
-        rethrow;
-      }
+      AppLogger.error('Error inesperado en checkTicketStatus: $e');
       throw ServerException('Error de conexión: $e');
     }
   }
@@ -104,51 +83,33 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
   @override
   Future<ValidationResultModel> validateTicketQR(String validationCode) async {
     try {
-      AppLogger.info('Validando ticket QR: $validationCode');
+      AppLogger.info('Validando ticket QR (Dio): $validationCode');
 
       final token = await AuthService.getAccessToken();
       if (token == null) {
         throw ServerException('Token de autenticación no disponible');
       }
 
-      final url = AppConstants.validateTicketEndpoint;
-      AppLogger.debug('URL de validación: $url');
-
-      final requestBody = jsonEncode({'validationCode': validationCode});
-      AppLogger.debug('Cuerpo de solicitud: $requestBody');
-
-      final response = await client
-          .post(
-            Uri.parse(url),
-            headers: HttpHeaderUtils.getAuthHeaders(token),
-            body: requestBody,
-          )
-          .timeout(AppConstants.connectTimeout);
-
-      AppLogger.info('Respuesta del servidor: ${response.statusCode}');
-      AppLogger.debug('Cuerpo de respuesta: ${response.body}');
+      final response = await dio.post(
+        AppConstants.validateTicketEndpoint,
+        data: {'validationCode': validationCode},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        return ValidationResultModel.fromJson(responseData);
-      } else if (response.statusCode == 400) {
-        final responseData = jsonDecode(response.body);
-        throw ServerException(responseData['message'] ?? 'Ticket inválido');
-      } else if (response.statusCode == 404) {
-        throw ServerException('Ticket no encontrado');
-      } else if (response.statusCode == 401) {
-        throw ServerException('Token de autenticación inválido');
+        return ValidationResultModel.fromJson(response.data);
       } else {
-        final responseData = jsonDecode(response.body);
-        throw ServerException(
-          responseData['message'] ?? 'Error al validar el ticket',
-        );
+        throw ServerException('Error inesperado: ${response.statusCode}');
       }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      rethrow;
     } catch (e) {
-      AppLogger.error('Error validando ticket QR: $e');
-      if (e is ServerException) {
-        rethrow;
-      }
+      AppLogger.error('Error inesperado en validateTicketQR: $e');
       throw ServerException('Error de conexión: $e');
     }
   }
@@ -160,60 +121,54 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
     String chipId,
   ) async {
     try {
-      AppLogger.info(
-        'Actualizando datos de corredor: $validationCode, número: $runnerNumber, chip: $chipId',
-      );
+      AppLogger.info('Actualizando datos de corredor (Dio): $validationCode');
 
       final token = await AuthService.getAccessToken();
       if (token == null) {
         throw ServerException('Token de autenticación no disponible');
       }
 
-      final url = AppConstants.validateTicketEndpoint;
-      AppLogger.debug('URL de actualización: $url');
-
-      final requestBody = jsonEncode({
-        'validationCode': validationCode,
-        'runnerNumber': runnerNumber,
-        'chipId': chipId,
-      });
-      AppLogger.debug('Cuerpo de solicitud: $requestBody');
-
-      final response = await client
-          .post(
-            Uri.parse(url),
-            headers: HttpHeaderUtils.getAuthHeaders(token),
-            body: requestBody,
-          )
-          .timeout(AppConstants.connectTimeout);
-
-      AppLogger.info('Respuesta del servidor: ${response.statusCode}');
-      AppLogger.debug('Cuerpo de respuesta: ${response.body}');
+      final response = await dio.post(
+        AppConstants.validateTicketEndpoint,
+        data: {
+          'validationCode': validationCode,
+          'runnerNumber': runnerNumber,
+          'chipId': chipId,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        return ValidationResultModel.fromJson(responseData);
-      } else if (response.statusCode == 400) {
-        final responseData = jsonDecode(response.body);
-        throw ServerException(
-          responseData['error'] ?? 'Error al actualizar datos',
-        );
-      } else if (response.statusCode == 404) {
-        throw ServerException('Ticket no encontrado');
-      } else if (response.statusCode == 401) {
-        throw ServerException('Token de autenticación inválido');
+        return ValidationResultModel.fromJson(response.data);
       } else {
-        final responseData = jsonDecode(response.body);
-        throw ServerException(
-          responseData['error'] ?? 'Error al actualizar datos del corredor',
-        );
+        throw ServerException('Error inesperado: ${response.statusCode}');
       }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      rethrow;
     } catch (e) {
-      AppLogger.error('Error actualizando datos del corredor: $e');
-      if (e is ServerException) {
-        rethrow;
-      }
+      AppLogger.error('Error inesperado en updateTicketRunnerData: $e');
       throw ServerException('Error de conexión: $e');
     }
+  }
+
+  void _handleDioError(DioException e) {
+    AppLogger.error('Error de API (Dio): ${e.type} - ${e.message}');
+    
+    if (e.response?.statusCode == 404) {
+      throw ServerException('Ticket no encontrado');
+    } else if (e.response?.statusCode == 401) {
+      throw ServerException('Token de autenticación inválido');
+    } else if (e.response?.statusCode == 400) {
+      final message = e.response?.data?['message'] ?? e.response?.data?['error'] ?? 'Solicitud inválida';
+      throw ServerException(message);
+    }
+    
+    final message = e.response?.data?['message'] ?? e.response?.data?['error'] ?? 'Error al procesar la solicitud';
+    throw ServerException(message);
   }
 }
