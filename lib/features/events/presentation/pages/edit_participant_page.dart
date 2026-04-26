@@ -48,19 +48,16 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
   bool _isAdmin = false;
   bool _isCategorizable = false;
   bool _categoriesEnabled = false;
-  late final FocusNode _documentFocusNode;
 
   @override
   void initState() {
     super.initState();
-    _documentFocusNode = FocusNode();
     _nameController = TextEditingController(text: widget.participant.firstName);
     _lastNameController = TextEditingController(text: widget.participant.lastName);
     _emailController = TextEditingController(text: widget.participant.email);
     _phoneController = TextEditingController(text: widget.participant.phone);
     _documentNumberController = TextEditingController(text: widget.participant.participantDocumentNumber);
     
-    // Formatear documento inicial según su tipo
     if (_selectedDocumentType == 'rut') {
       final cleanDoc = DocumentFormatter.cleanDocument(_documentNumberController.text);
       if (DocumentFormatter.validateRut(cleanDoc)) {
@@ -68,7 +65,6 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
       }
     }
     
-    // Formatear fecha inicial si existe
     String initialBirthDate = widget.participant.birthDate ?? '';
     if (initialBirthDate.isNotEmpty) {
       try {
@@ -84,7 +80,6 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
     _selectedDocumentType = widget.participant.participantDocumentType.toLowerCase();
     if (_selectedDocumentType == 'passport') _selectedDocumentType = 'pasaporte';
 
-    // Si el tipo no está en la lista permitida, resetear a rut por defecto
     if (!['rut', 'pasaporte'].contains(_selectedDocumentType)) {
       _selectedDocumentType = 'rut';
     }
@@ -175,10 +170,8 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
     AppLogger.info('[EditParticipant] Cargando datos para evento: ${widget.event.id}');
     AppLogger.info('[EditParticipant] Ticket ID del participante: $_selectedTicketId');
 
-    // Primero cargar tickets para verificar isCategorizable
     final ticketsResult = await context.read<GetEventTicketsDetailed>().execute(widget.event.id, token, _isAdmin);
 
-    // Luego cargar categorías filtradas por ticket
     final List<dynamic> categoriesByTicket = [];
     if (_selectedTicketId != null) {
       final catResult = await context.read<GetEventCategoriesByTicket>().execute(
@@ -206,7 +199,6 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
           }
         });
 
-        // Usar categorías filtradas por ticket
         _allCategories = categoriesByTicket;
         AppLogger.info('[EditParticipant] Total categorías para este ticket: ${_allCategories.length}');
         
@@ -278,9 +270,8 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
     });
   }
 
-void _submit() async {
+  void _submit() async {
     if (_formKey.currentState!.validate()) {
-      // Validar y formatear RUT antes de enviar
       String documentNumber = _documentNumberController.text;
       if (_selectedDocumentType == 'rut') {
         final cleanDoc = DocumentFormatter.cleanDocument(documentNumber);
@@ -354,177 +345,184 @@ void _submit() async {
         ),
         body: _isLoadingData
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(AppConstants.padding),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionTitle('Información Personal'),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: _buildInputDecoration('Nombre', Icons.person_outline),
-                        validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _lastNameController,
-                        decoration: _buildInputDecoration('Apellido', Icons.person_outline),
-                        validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedDocumentType,
-                              isExpanded: true,
-                              decoration: _buildInputDecoration('Tipo', Icons.badge_outlined),
-                              items: const [
-                                DropdownMenuItem(value: 'rut', child: Text('RUT')),
-                                DropdownMenuItem(value: 'pasaporte', child: Text('PASAPORTE')),
-                              ],
-                              onChanged: (v) => setState(() => _selectedDocumentType = v),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: _documentNumberController,
-                              decoration: _buildInputDecoration('Documento', Icons.numbers),
+            : Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppConstants.padding),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('Información Personal'),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: _buildInputDecoration('Nombre', Icons.person_outline),
                               validator: (v) => v!.isEmpty ? 'Requerido' : null,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: _buildInputDecoration('Email', Icons.email_outlined),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _phoneController,
-                        decoration: _buildInputDecoration('Teléfono', Icons.phone_outlined),
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _birthDateController,
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _lastNameController,
+                              decoration: _buildInputDecoration('Apellido', Icons.person_outline),
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedDocumentType,
+                                    isExpanded: true,
+                                    decoration: _buildInputDecoration('Tipo', Icons.badge_outlined),
+                                    items: const [
+                                      DropdownMenuItem(value: 'rut', child: Text('RUT')),
+                                      DropdownMenuItem(value: 'pasaporte', child: Text('PASAPORTE')),
+                                    ],
+                                    onChanged: (v) => setState(() => _selectedDocumentType = v),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: _documentNumberController,
+                                    decoration: _buildInputDecoration('Documento', Icons.numbers),
+                                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: _buildInputDecoration('Email', Icons.email_outlined),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: _buildInputDecoration('Teléfono', Icons.phone_outlined),
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _birthDateController,
+                                    readOnly: true,
+                                    onTap: _selectBirthDate,
+                                    decoration: _buildInputDecoration('Fecha Nacimiento', Icons.calendar_today_outlined),
+                                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedGender,
+                                    isExpanded: true,
+                                    decoration: _buildInputDecoration('Género', Icons.people_outline),
+                                    items: const [
+                                      DropdownMenuItem(value: 'male', child: Text('Masculino')),
+                                      DropdownMenuItem(value: 'female', child: Text('Femenino')),
+                                    ],
+                                    onChanged: (v) {
+                                      setState(() => _selectedGender = v);
+                                      _updateFilteredCategories();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            _buildSectionTitle('Información Reserva'),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              initialValue: widget.participant.validationCode ?? 'Sin código',
                               readOnly: true,
-                              onTap: _selectBirthDate,
-                              decoration: _buildInputDecoration('Fecha Nacimiento', Icons.calendar_today_outlined),
-                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                              decoration: _buildInputDecoration('Código de Validación', Icons.confirmation_number_outlined),
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedGender,
-                              isExpanded: true,
-                              decoration: _buildInputDecoration('Género', Icons.people_outline),
-                              items: const [
-                                DropdownMenuItem(value: 'male', child: Text('Masculino')),
-                                DropdownMenuItem(value: 'female', child: Text('Femenino')),
-                              ],
-                              onChanged: (v) {
-                                setState(() => _selectedGender = v);
-                                _updateFilteredCategories();
-                              },
+                            const SizedBox(height: 32),
+                            _buildSectionTitle('Ticket y Categoría'),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              initialValue: widget.participant.ticketName,
+                              readOnly: true,
+                              decoration: _buildInputDecoration('Ticket', Icons.confirmation_number_outlined),
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Información Reserva'),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        initialValue: widget.participant.validationCode ?? 'Sin código',
-                        readOnly: true,
-                        decoration: _buildInputDecoration('Código de Validación', Icons.confirmation_number_outlined),
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Ticket y Categoría'),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        initialValue: widget.participant.ticketName,
-                        readOnly: true,
-                        decoration: _buildInputDecoration('Ticket', Icons.confirmation_number_outlined),
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                      if (_isCategorizable) ...[
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategoryId,
-                          isExpanded: true,
-                          decoration: _buildInputDecoration('Categoría', Icons.category_outlined),
-                          items: _categories
-                              .map((e) => DropdownMenuItem<String>(
-                                    value: e['id'],
-                                    child: Text(e['name'] ?? ''),
-                                  ))
-                              .toList(),
-                          onChanged: _categoriesEnabled
-                              ? (v) => setState(() => _selectedCategoryId = v)
-                              : null,
-                        ),
-                      ],
-                      const SizedBox(height: 48),
-                      BlocBuilder<ParticipantBloc, ParticipantState>(
-                        builder: (context, state) {
-                          final isLoading = state is ChangeParticipantLoading;
-                          return Column(
-                            children: [
-                              SizedBox(
-                                width: double.infinity,
-                                height: 54,
-                                child: ElevatedButton(
-                                  onPressed: isLoading ? null : _submit,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: AppColors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  child: isLoading
-                                      ? const CircularProgressIndicator(color: AppColors.white)
-                                      : const Text('GUARDAR CAMBIOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 54,
-                                child: OutlinedButton(
-                                  onPressed: isLoading ? null : _clearForm,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.error,
-                                    side: const BorderSide(color: AppColors.error),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  child: const Text('LIMPIAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                ),
+                            if (_isCategorizable) ...[
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: _selectedCategoryId,
+                                isExpanded: true,
+                                decoration: _buildInputDecoration('Categoría', Icons.category_outlined),
+                                items: _categories
+                                    .map((e) => DropdownMenuItem<String>(
+                                          value: e['id'],
+                                          child: Text(e['name'] ?? ''),
+                                        ))
+                                    .toList(),
+                                onChanged: _categoriesEnabled
+                                    ? (v) => setState(() => _selectedCategoryId = v)
+                                    : null,
                               ),
                             ],
-                          );
-                        },
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 32),
-                    ],
+                    ),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppConstants.padding),
+                    child: BlocBuilder<ParticipantBloc, ParticipantState>(
+                      builder: (context, state) {
+                        final isLoading = state is ChangeParticipantLoading;
+                        return Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: isLoading
+                                    ? const CircularProgressIndicator(color: AppColors.white)
+                                    : const Text('GUARDAR CAMBIOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: OutlinedButton(
+                                onPressed: isLoading ? null : _clearForm,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.error,
+                                  side: const BorderSide(color: AppColors.error),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: const Text('LIMPIAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-),
+      ),
     );
   }
 

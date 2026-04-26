@@ -86,6 +86,7 @@ class _RutTicketSearchPageState extends State<RutTicketSearchPage> {
       });
     } finally {
       if (mounted) {
+        FocusScope.of(context).unfocus();
         setState(() {
           _isLoading = false;
         });

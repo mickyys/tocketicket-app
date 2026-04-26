@@ -8,12 +8,10 @@ class AppConfig {
 
   static const String _envString = String.fromEnvironment(
     'ENVIRONMENT',
-    defaultValue: 'dev',
+    defaultValue: 'prod',
   );
 
-  static String? _customApiUrl = const String.fromEnvironment(
-    'API_URL',
-  );
+  static String? _customApiUrl = const String.fromEnvironment('API_URL');
 
   static void setCustomApiUrl(String? url) {
     _customApiUrl = url;
