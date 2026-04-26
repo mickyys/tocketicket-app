@@ -439,6 +439,7 @@ class _EventParticipantsViewState extends State<EventParticipantsView> {
                               child: QRScannerPage(
                                 eventId: widget.event.id,
                                 eventName: widget.event.name,
+                                canSaveData: false,
                                 onScanSaved: () {
                                   _loadParticipants();
                                 },

@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/get_events.dart';
 import '../../domain/usecases/get_attendee_status_summary.dart';
@@ -14,11 +15,29 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   final GetEvents getEvents;
   final GetAttendeeStatusSummary getAttendeeStatusSummary;
 
-  EventBloc({required this.getEvents, required this.getAttendeeStatusSummary})
-    : super(EventInitial()) {
+EventBloc({required this.getEvents, required this.getAttendeeStatusSummary})
+      : super(EventInitial()) {
     on<FetchEvents>(_onFetchEvents);
     on<SynchronizeEventAttendeesEvent>(_onSynchronizeEventAttendees);
     on<GetAttendeeStatusSummaryEvent>(_onGetAttendeeStatusSummary);
+    on<ResetEvents>(_onResetEvents);
+
+    AuthService.onSessionChange.listen((isLoggedIn) {
+      if (!isLoggedIn) {
+        add(ResetEvents());
+      } else {
+        add(ResetEvents());
+        add(FetchEvents());
+      }
+    });
+  }
+
+  Future<void> _onResetEvents(
+    ResetEvents event,
+    Emitter<EventState> emit,
+  ) async {
+    print('EventBloc: ResetEvents triggered, clearing state');
+    emit(EventInitial());
   }
 
   Future<void> _onFetchEvents(

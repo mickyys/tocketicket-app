@@ -78,6 +78,29 @@ class _HomePageContentState extends State<_HomePageContent> {
     return !roles.contains('organizer') && !roles.contains('admin');
   }
 
+  bool get _canModifyParticipant {
+    final roles = (userData?['roles'] as List?)?.cast<String>() ?? [];
+    return roles.contains('admin') || roles.contains('editor') || roles.contains('organizer');
+  }
+
+  bool get _canValidate {
+    final roles = (userData?['roles'] as List?)?.cast<String>() ?? [];
+    return !roles.contains('viewer');
+  }
+
+  String get _userName =>
+      userData?['name']?.toString() ?? userData?['email']?.toString() ?? 'Usuario';
+
+  String get _userRole {
+    final roles = (userData?['roles'] as List?)?.cast<String>() ?? [];
+    if (roles.contains('admin')) return 'Administrador';
+    if (roles.contains('editor')) return 'Editor';
+    if (roles.contains('organizer')) return 'Organizador';
+    if (roles.contains('validator')) return 'Validador';
+    if (roles.contains('viewer')) return 'Visualizador';
+    return roles.isNotEmpty ? roles.first : 'Usuario';
+  }
+
   String get _organizerName =>
       organizerProfile?['legal_name']?.toString() ??
       organizerProfile?['name']?.toString() ??
@@ -97,8 +120,11 @@ class _HomePageContentState extends State<_HomePageContent> {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: _AppDrawer(
+        userName: _userName,
+        userRole: _userRole,
         organizerName: _organizerName,
         isTeamMember: _isTeamMember,
+        canModifyParticipant: _canModifyParticipant,
         onSearchByRut: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
@@ -383,7 +409,7 @@ class _HomePageContentState extends State<_HomePageContent> {
                 MaterialPageRoute(
                   builder:
                       (context) =>
-                          EventDetailPage(event: event, eventBloc: eventBloc),
+                          EventDetailPage(event: event, eventBloc: eventBloc, canValidate: _canValidate),
                 ),
               );
             },
@@ -395,15 +421,21 @@ class _HomePageContentState extends State<_HomePageContent> {
 }
 
 class _AppDrawer extends StatelessWidget {
+  final String userName;
+  final String userRole;
   final String organizerName;
   final bool isTeamMember;
+  final bool canModifyParticipant;
   final VoidCallback onSearchByRut;
   final VoidCallback onParticipantEdit;
   final VoidCallback onLogout;
 
   const _AppDrawer({
+    required this.userName,
+    required this.userRole,
     required this.organizerName,
     required this.isTeamMember,
+    required this.canModifyParticipant,
     required this.onSearchByRut,
     required this.onParticipantEdit,
     required this.onLogout,
@@ -434,12 +466,12 @@ class _AppDrawer extends StatelessWidget {
                   Image.asset('assets/images/logo.jpg', height: 36),
                   const SizedBox(height: 12),
                   Text(
-                    isTeamMember ? organizerName : 'Validador',
+                    userName,
                     style: theme.textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Accesos rápidos',
+                    userRole,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -453,12 +485,13 @@ class _AppDrawer extends StatelessWidget {
               subtitle: const Text('Tickets en eventos permitidos'),
               onTap: onSearchByRut,
             ),
-            ListTile(
-              leading: const Icon(Icons.edit_note, color: AppColors.primary),
-              title: const Text('Modificar Participante'),
-              subtitle: const Text('Editar datos por RUT/Pasaporte'),
-              onTap: onParticipantEdit,
-            ),
+            if (canModifyParticipant)
+              ListTile(
+                leading: const Icon(Icons.edit_note, color: AppColors.primary),
+                title: const Text('Modificar Participante'),
+                subtitle: const Text('Editar datos por RUT/Pasaporte'),
+                onTap: onParticipantEdit,
+              ),
             const Spacer(),
             const Divider(color: AppColors.border, height: 1),
             ListTile(

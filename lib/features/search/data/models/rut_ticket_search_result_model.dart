@@ -22,6 +22,8 @@ class RutTicketSearchResultModel {
   final String ticketStatus;
   final DateTime? validatedAt;
   final DateTime purchaseDate;
+  final String? birthDate;
+  final String? gender;
 
   const RutTicketSearchResultModel({
     required this.orderId,
@@ -41,8 +43,10 @@ class RutTicketSearchResultModel {
     required this.validationCode,
     required this.participantStatus,
     required this.ticketStatus,
-    required this.validatedAt,
+required this.validatedAt,
     required this.purchaseDate,
+    this.birthDate,
+    this.gender,
   });
 
   factory RutTicketSearchResultModel.fromJson(Map<String, dynamic> json) {
@@ -74,6 +78,8 @@ class RutTicketSearchResultModel {
       purchaseDate:
           DateTime.tryParse(json['purchaseDate']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      birthDate: json['birthDate']?.toString(),
+      gender: json['gender']?.toString(),
     );
   }
 
@@ -119,6 +125,8 @@ class RutTicketSearchResultModel {
       lastName: lname,
       email: email,
       phone: phone,
+      birthDate: birthDate,
+      gender: gender,
       participantDocumentNumber: documentNumber,
       participantDocumentType: documentType.toLowerCase(),
       participantStatus: participantStatus,

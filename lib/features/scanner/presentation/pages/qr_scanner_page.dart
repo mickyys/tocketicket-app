@@ -24,13 +24,43 @@ class QRScannerPage extends StatelessWidget {
   final VoidCallback? onScanSaved;
   final String? eventId;
   final String? eventName;
+  final bool canSaveData;
 
-  const QRScannerPage({
+const QRScannerPage({
     super.key,
     this.onScanSaved,
     this.eventId,
     this.eventName,
+    this.canSaveData = true,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return QRScannerView(
+      onScanSaved: onScanSaved,
+      eventId: eventId,
+      eventName: eventName,
+      canSaveData: canSaveData,
+    );
+  }
+}
+
+class QRScannerView extends StatefulWidget {
+  final VoidCallback? onScanSaved;
+  final String? eventId;
+  final String? eventName;
+  final bool canSaveData;
+
+  const QRScannerView({
+    super.key,
+    this.onScanSaved,
+    this.eventId,
+    this.eventName,
+    this.canSaveData = true,
+  });
+
+  @override
+  State<QRScannerView> createState() => _QRScannerViewState();
 
   @override
   Widget build(BuildContext context) {
@@ -48,22 +78,6 @@ class QRScannerPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class QRScannerView extends StatefulWidget {
-  final VoidCallback? onScanSaved;
-  final String? eventId;
-  final String? eventName;
-
-  const QRScannerView({
-    super.key,
-    this.onScanSaved,
-    this.eventId,
-    this.eventName,
-  });
-
-  @override
-  State<QRScannerView> createState() => _QRScannerViewState();
 }
 
 class _QRScannerViewState extends State<QRScannerView> {
@@ -632,6 +646,7 @@ class _QRScannerViewState extends State<QRScannerView> {
             (_) => TicketConfirmationPage(
               initialTicket: result,
               scannerBloc: _scannerBloc,
+              canSaveData: widget.canSaveData,
               onNewScan: () {
                 _saveToReadHistory(result);
                 Navigator.of(context).pop();

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
@@ -9,6 +10,8 @@ import '../../config/app_config.dart';
 class AuthService {
   static const _storage = FlutterSecureStorage();
   static http.Client? _httpClient;
+  static final _sessionController = StreamController<bool>.broadcast();
+  static Stream<bool> get onSessionChange => _sessionController.stream;
 
   // Método para configurar el cliente HTTP (se llamará desde DI)
   static void setHttpClient(http.Client client) {
@@ -76,6 +79,8 @@ class AuthService {
             value: jsonEncode(responseData['user']),
           );
         }
+
+        _sessionController.add(true);
 
         return {'success': true, 'data': responseData};
       } else {
@@ -341,6 +346,14 @@ class AuthService {
             value: jsonEncode(data['user']),
           );
         }
+        // Save allowed eventIds for viewer role
+        final roles = (data['user']?['roles'] as List?)?.cast<String>() ?? [];
+        if (roles.contains('viewer') && data['user']?['eventIds'] != null) {
+          await _storage.write(
+            key: AppConstants.allowedEventIdsKey,
+            value: jsonEncode(data['user']?['eventIds']),
+          );
+        }
       }
     } catch (e) {
       AppLogger.error('Error fetching profile: $e');
@@ -358,12 +371,38 @@ class AuthService {
     }
   }
 
+  static Future<List<String>> getAllowedEventIds() async {
+    try {
+      final data = await _storage.read(key: AppConstants.allowedEventIdsKey);
+      if (data != null) {
+        return (jsonDecode(data) as List).cast<String>();
+      }
+      return [];
+    } catch (e) {
+      AppLogger.error('Error obteniendo eventos permitidos: $e');
+      return [];
+    }
+  }
+
   static Future<bool> isLoggedIn() async {
     try {
       final token = await _storage.read(key: AppConstants.accessTokenKey);
       return token != null && token.isNotEmpty;
     } catch (e) {
       AppLogger.error('Error verificando login: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> canValidateTicket() async {
+    try {
+      final data = await getUserData();
+      if (data == null) return false;
+      final roles = (data['roles'] as List?)?.cast<String>() ?? [];
+      // Viewers can only view, not validate tickets
+      if (roles.contains('viewer')) return false;
+      return true;
+    } catch (e) {
       return false;
     }
   }
@@ -396,9 +435,14 @@ class AuthService {
       await _storage.delete(key: AppConstants.refreshTokenKey);
       await _storage.delete(key: AppConstants.userDataKey);
       await _storage.delete(key: AppConstants.organizerProfileKey);
+      _sessionController.add(false);
       AppLogger.info('Logout exitoso');
     } catch (e) {
       AppLogger.error('Error en logout: $e');
     }
+  }
+
+  static void dispose() {
+    _sessionController.close();
   }
 }

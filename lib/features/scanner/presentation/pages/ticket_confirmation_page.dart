@@ -13,6 +13,7 @@ import 'package:tocke/features/scanner/presentation/widgets/ticket_status_card.d
 class TicketConfirmationPage extends StatelessWidget {
   final ValidationResult initialTicket;
   final ScannerBloc? scannerBloc;
+  final bool canSaveData;
   final VoidCallback? onNewScan;
   final Function(String, String)? onSaveData;
 
@@ -20,6 +21,7 @@ class TicketConfirmationPage extends StatelessWidget {
     super.key,
     required this.initialTicket,
     this.scannerBloc,
+    this.canSaveData = true,
     this.onNewScan,
     this.onSaveData,
   });
@@ -38,6 +40,7 @@ class TicketConfirmationPage extends StatelessWidget {
       value: bloc,
       child: _TicketConfirmationView(
         initialTicket: initialTicket,
+        canSaveData: canSaveData,
         onNewScan: onNewScan,
         onSaveData: onSaveData,
       ),
@@ -47,11 +50,13 @@ class TicketConfirmationPage extends StatelessWidget {
 
 class _TicketConfirmationView extends StatefulWidget {
   final ValidationResult initialTicket;
+  final bool canSaveData;
   final VoidCallback? onNewScan;
   final Function(String, String)? onSaveData;
 
   const _TicketConfirmationView({
     required this.initialTicket,
+    required this.canSaveData,
     this.onNewScan,
     this.onSaveData,
   });
@@ -138,6 +143,7 @@ class _TicketConfirmationViewState extends State<_TicketConfirmationView> {
             chipId: currentResult.chipId ?? '',
             isFirstTime: currentResult.ticketStatus == 'valid',
             isSaving: isLoading,
+            canSaveData: widget.canSaveData,
             onNewScan: () {
               if (widget.onNewScan != null) {
                 widget.onNewScan!();

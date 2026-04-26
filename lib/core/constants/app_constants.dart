@@ -53,6 +53,7 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userDataKey = 'user_data';
   static const String organizerProfileKey = 'organizer_profile';
+  static const String allowedEventIdsKey = 'allowed_event_ids';
   static const String lastSyncKey = 'last_sync';
   static const String selectedEventKey = 'selected_event';
   static const String themeKey = 'theme_mode';

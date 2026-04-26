@@ -22,11 +22,13 @@ import '../bloc/event_bloc.dart';
 class EventDetailPage extends StatelessWidget {
   final Event event;
   final EventBloc eventBloc;
+  final bool canValidate;
 
   const EventDetailPage({
     super.key,
     required this.event,
     required this.eventBloc,
+    this.canValidate = true,
   });
 
   @override
@@ -56,15 +58,23 @@ class EventDetailPage extends StatelessWidget {
           }(),
         ),
       ],
-      child: EventDetailView(event: event),
+      child: EventDetailView(
+        event: event,
+        canValidate: canValidate,
+      ),
     );
   }
 }
 
 class EventDetailView extends StatefulWidget {
   final Event event;
+  final bool canValidate;
 
-  const EventDetailView({super.key, required this.event});
+  const EventDetailView({
+    super.key,
+    required this.event,
+    this.canValidate = true,
+  });
 
   @override
   State<EventDetailView> createState() => _EventDetailViewState();
@@ -422,7 +432,8 @@ class _EventDetailViewState extends State<EventDetailView> {
             },
           ),
           bottomNavigationBar: BottomNavBar(
-            currentIndex: -1, // Ninguno seleccionado en esta vista de detalle
+            currentIndex: -1,
+            canValidate: widget.canValidate,
             onTap: (index) async {
               if (index == 1) {
                 // Historial - Antes enviaba a EventParticipantsPage por error
@@ -474,6 +485,7 @@ class _EventDetailViewState extends State<EventDetailView> {
                             child: QRScannerPage(
                               eventId: event.id,
                               eventName: event.name,
+                              canSaveData: widget.canValidate,
                               onScanSaved: () {
                                 _refreshParticipants();
                                 // Refrescar el resumen de asistentes tras cada escaneo.
