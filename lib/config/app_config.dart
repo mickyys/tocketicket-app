@@ -8,8 +8,14 @@ class AppConfig {
 
   static const String _envString = String.fromEnvironment(
     'ENVIRONMENT',
-    defaultValue: 'dev',
+    defaultValue: 'prod',
   );
+
+  static String? _customApiUrl = const String.fromEnvironment('API_URL');
+
+  static void setCustomApiUrl(String? url) {
+    _customApiUrl = url;
+  }
 
   static void setEnvironment() {
     switch (_envString.toLowerCase()) {
@@ -30,6 +36,9 @@ class AppConfig {
 
   // URLs base según el entorno
   static String get baseUrl {
+    if (_customApiUrl != null && _customApiUrl!.isNotEmpty) {
+      return _customApiUrl!;
+    }
     switch (_environment) {
       case Environment.local:
         return Platform.isAndroid
@@ -121,6 +130,7 @@ class AppConfig {
     return {
       'environment': _environment.name,
       'baseUrl': baseUrl,
+      'customApiUrl': _customApiUrl,
       'isDebug': isDebug,
       'appName': appName,
       'packageName': packageName,
@@ -134,6 +144,7 @@ class AppConfig {
       print('=== APP CONFIGURATION ===');
       print('Environment: ${_environment.name}');
       print('Base URL: $baseUrl');
+      print('Custom API URL: ${_customApiUrl ?? "none"}');
       print('App Name: $appName');
       print('Package Name: $packageName');
       print('Debug Mode: $isDebug');

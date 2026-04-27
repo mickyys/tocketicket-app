@@ -7,11 +7,15 @@ import '../services/event_service.dart';
 import '../../config/app_config.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../network/network_info.dart';
+import '../network/auth_interceptor.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
 import '../../features/events/domain/usecases/get_events.dart';
 import '../../features/events/domain/usecases/get_event_participants_detailed.dart';
 import '../../features/events/domain/usecases/search_participants.dart';
+import '../../features/events/domain/usecases/change_participant.dart';
+import '../../features/events/domain/usecases/get_event_categories.dart';
+import '../../features/events/domain/usecases/get_event_tickets_detailed.dart';
 import '../../features/events/domain/usecases/get_attendee_status_summary.dart';
 import '../../features/events/data/datasources/participants_remote_data_source.dart';
 import '../../features/events/data/repositories/participants_repository_impl.dart';
@@ -22,6 +26,7 @@ import '../../features/scanner/domain/repositories/ticket_repository.dart';
 import '../../features/scanner/domain/usecases/check_ticket_status.dart';
 import '../../features/scanner/domain/usecases/validate_ticket_qr.dart';
 import '../../features/scanner/domain/usecases/update_ticket_runner_data.dart';
+import '../../features/search/data/services/rut_ticket_search_service.dart';
 import '../storage/database_helper.dart';
 
 class DependencyInjection {
@@ -29,18 +34,13 @@ class DependencyInjection {
     // HTTP Client
     RepositoryProvider<http.Client>(
       create: (_) {
-        // Usar cliente HTTP estándar
         final client = http.Client();
-
-        // Configurar AuthService con el cliente
         AuthService.setHttpClient(client);
-
         if (kDebugMode) {
           debugPrint(
             '🚀 DI: Cliente HTTP estándar configurado para todos los servicios',
           );
         }
-
         return client;
       },
     ),
@@ -55,6 +55,10 @@ class DependencyInjection {
             receiveTimeout: const Duration(seconds: 30),
           ),
         );
+
+        // Agregar interceptor de autenticación
+        dio.interceptors.add(AuthInterceptor());
+
         return dio;
       },
     ),
@@ -72,11 +76,15 @@ class DependencyInjection {
       create: (context) => EventService(client: context.read<http.Client>()),
     ),
 
-    // Data Sources
-    RepositoryProvider<TicketRemoteDataSource>(
+    RepositoryProvider<RutTicketSearchService>(
       create:
           (context) =>
-              TicketRemoteDataSourceImpl(client: context.read<http.Client>()),
+              RutTicketSearchService(client: context.read<http.Client>()),
+    ),
+
+    // Data Sources
+    RepositoryProvider<TicketRemoteDataSource>(
+      create: (context) => TicketRemoteDataSourceImpl(dio: context.read<Dio>()),
     ),
 
     RepositoryProvider<ParticipantsRemoteDataSource>(
@@ -146,6 +154,30 @@ class DependencyInjection {
           (context) => SearchParticipants(
             repository: context.read<ParticipantsRepository>(),
           ),
+    ),
+
+    RepositoryProvider<ChangeParticipant>(
+      create:
+          (context) =>
+              ChangeParticipant(context.read<ParticipantsRepository>()),
+    ),
+
+    RepositoryProvider<GetEventCategories>(
+      create:
+          (context) =>
+              GetEventCategories(context.read<ParticipantsRepository>()),
+    ),
+
+    RepositoryProvider<GetEventCategoriesByTicket>(
+      create:
+          (context) =>
+              GetEventCategoriesByTicket(context.read<ParticipantsRepository>()),
+    ),
+
+    RepositoryProvider<GetEventTicketsDetailed>(
+      create:
+          (context) =>
+              GetEventTicketsDetailed(context.read<ParticipantsRepository>()),
     ),
   ];
 }

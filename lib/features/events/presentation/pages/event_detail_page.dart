@@ -12,6 +12,7 @@ import '../../../scanner/domain/usecases/validate_ticket_qr.dart';
 import '../../../scanner/domain/usecases/update_ticket_runner_data.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/participant.dart';
+import '../../domain/usecases/change_participant.dart';
 import '../../domain/entities/attendee_status_summary.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
@@ -21,11 +22,13 @@ import '../bloc/event_bloc.dart';
 class EventDetailPage extends StatelessWidget {
   final Event event;
   final EventBloc eventBloc;
+  final bool canValidate;
 
   const EventDetailPage({
     super.key,
     required this.event,
     required this.eventBloc,
+    this.canValidate = true,
   });
 
   @override
@@ -35,18 +38,13 @@ class EventDetailPage extends StatelessWidget {
         BlocProvider(
           create: (context) {
             debugPrint(
-              '[EventDetail] [1] Lanzando FetchParticipantsEvent (caché local) para evento ${event.id}',
+              '[EventDetail] [1] Creando ParticipantBloc para evento ${event.id}',
             );
             return ParticipantBloc(
               getEventParticipantsDetailed:
                   context.read<GetEventParticipantsDetailed>(),
               searchParticipants: context.read<SearchParticipants>(),
-            )..add(
-              FetchParticipantsEvent(
-                eventId: event.id,
-                token: '',
-                pageSize: 1000,
-              ),
+              changeParticipant: context.read<ChangeParticipant>(),
             );
           },
         ),
@@ -60,15 +58,23 @@ class EventDetailPage extends StatelessWidget {
           }(),
         ),
       ],
-      child: EventDetailView(event: event),
+      child: EventDetailView(
+        event: event,
+        canValidate: canValidate,
+      ),
     );
   }
 }
 
 class EventDetailView extends StatefulWidget {
   final Event event;
+  final bool canValidate;
 
-  const EventDetailView({super.key, required this.event});
+  const EventDetailView({
+    super.key,
+    required this.event,
+    this.canValidate = true,
+  });
 
   @override
   State<EventDetailView> createState() => _EventDetailViewState();
@@ -89,11 +95,27 @@ class _EventDetailViewState extends State<EventDetailView> {
   bool? _enableRunnerNumber;
   bool _summaryLoaded = false;
 
+  Future<void> _refreshParticipants() async {
+    final token = await AuthService.getAccessToken() ?? '';
+    if (!mounted) return;
+
+    context.read<ParticipantBloc>().add(
+      FetchParticipantsEvent(
+        eventId: widget.event.id,
+        token: token,
+        pageSize: 1000,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _loadLastScan();
     _isSyncing = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshParticipants();
+    });
   }
 
   void _onParticipantStateChange(BuildContext context, ParticipantState state) {
@@ -410,7 +432,8 @@ class _EventDetailViewState extends State<EventDetailView> {
             },
           ),
           bottomNavigationBar: BottomNavBar(
-            currentIndex: -1, // Ninguno seleccionado en esta vista de detalle
+            currentIndex: -1,
+            canValidate: widget.canValidate,
             onTap: (index) async {
               if (index == 1) {
                 // Historial - Antes enviaba a EventParticipantsPage por error
@@ -462,14 +485,9 @@ class _EventDetailViewState extends State<EventDetailView> {
                             child: QRScannerPage(
                               eventId: event.id,
                               eventName: event.name,
+                              canSaveData: widget.canValidate,
                               onScanSaved: () {
-                                participantBloc.add(
-                                  FetchParticipantsEvent(
-                                    eventId: event.id,
-                                    token: '',
-                                    pageSize: 1000,
-                                  ),
-                                );
+                                _refreshParticipants();
                                 // Refrescar el resumen de asistentes tras cada escaneo.
                                 eventBloc.add(
                                   GetAttendeeStatusSummaryEvent(event.id),

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/participant.dart';
 import '../../domain/usecases/get_event_participants_detailed.dart';
 import '../../domain/usecases/search_participants.dart';
+import '../../domain/usecases/change_participant.dart';
 
 // Events
 abstract class ParticipantEvent extends Equatable {
@@ -46,6 +47,23 @@ class SearchParticipantsEvent extends ParticipantEvent {
   List<Object> get props => [eventId, token, query];
 }
 
+class ChangeParticipantEvent extends ParticipantEvent {
+  final String orderId;
+  final String participantId;
+  final String token;
+  final Map<String, dynamic> data;
+
+  const ChangeParticipantEvent({
+    required this.orderId,
+    required this.participantId,
+    required this.token,
+    required this.data,
+  });
+
+  @override
+  List<Object> get props => [orderId, participantId, token, data];
+}
+
 class ClearLocalCacheEvent extends ParticipantEvent {
   final String eventId;
 
@@ -69,6 +87,14 @@ class ParticipantInitial extends ParticipantState {
 
 class ParticipantLoading extends ParticipantState {
   const ParticipantLoading();
+}
+
+class ChangeParticipantLoading extends ParticipantState {
+  const ChangeParticipantLoading();
+}
+
+class ChangeParticipantSuccess extends ParticipantState {
+  const ChangeParticipantSuccess();
 }
 
 class ParticipantLoaded extends ParticipantState {
@@ -111,13 +137,43 @@ class ParticipantError extends ParticipantState {
 class ParticipantBloc extends Bloc<ParticipantEvent, ParticipantState> {
   final GetEventParticipantsDetailed getEventParticipantsDetailed;
   final SearchParticipants searchParticipants;
+  final ChangeParticipant changeParticipant;
 
   ParticipantBloc({
     required this.getEventParticipantsDetailed,
     required this.searchParticipants,
+    required this.changeParticipant,
   }) : super(const ParticipantInitial()) {
     on<FetchParticipantsEvent>(_onFetchParticipants);
     on<SearchParticipantsEvent>(_onSearchParticipants);
+    on<ChangeParticipantEvent>(_onChangeParticipant);
+  }
+
+  Future<void> _onChangeParticipant(
+    ChangeParticipantEvent event,
+    Emitter<ParticipantState> emit,
+  ) async {
+    final previousState = state;
+    emit(const ChangeParticipantLoading());
+
+    final result = await changeParticipant.execute(
+      event.orderId,
+      event.participantId,
+      event.token,
+      event.data,
+    );
+
+    result.fold((failure) {
+      emit(ParticipantError(message: failure.message));
+      if (previousState is ParticipantLoaded) {
+        emit(previousState);
+      }
+    }, (success) {
+      emit(const ChangeParticipantSuccess());
+      if (previousState is ParticipantLoaded) {
+        emit(previousState);
+      }
+    });
   }
 
   Future<void> _onFetchParticipants(

@@ -6,20 +6,27 @@ import '../constants/app_colors.dart';
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool canValidate;
   final List<BottomNavItem> items;
 
   const BottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.canValidate = true,
     this.items = const [
       BottomNavItem(icon: Icons.qr_code_scanner, label: 'Escanear'),
       BottomNavItem(icon: Icons.history, label: 'Historial'),
     ],
   });
 
+  List<BottomNavItem> get _filteredItems {
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredItems = _filteredItems;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -32,11 +39,17 @@ class BottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(
-              items.length,
+              filteredItems.length,
               (index) => _buildNavItem(
-                item: items[index],
+                item: filteredItems[index],
                 isActive: index == currentIndex,
-                onTap: () => onTap(index),
+                onTap: () {
+                  if (canValidate) {
+                    onTap(index);
+                  } else {
+                    onTap(1);
+                  }
+                },
               ),
             ),
           ),
@@ -52,29 +65,30 @@ class BottomNavBar extends StatelessWidget {
   }) {
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Icon(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
                 item.icon,
                 size: 24,
                 color: isActive ? AppColors.primary : AppColors.textSecondary,
               ),
-            ),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
+              const SizedBox(height: 4),
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isActive ? AppColors.primary : AppColors.textSecondary,
+                ),
               ),
-            ),
-            if (isActive)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
+              const SizedBox(height: 4),
+              Opacity(
+                opacity: isActive ? 1 : 0,
                 child: Container(
                   width: 32,
                   height: 2,
@@ -84,7 +98,8 @@ class BottomNavBar extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

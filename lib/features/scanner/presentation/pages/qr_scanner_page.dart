@@ -7,6 +7,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/read_history_service.dart';
 import '../../domain/entities/validation_result.dart';
 import '../../domain/entities/read_record.dart';
@@ -17,18 +18,49 @@ import '../bloc/scanner_bloc.dart';
 import '../bloc/scanner_event.dart';
 import '../bloc/scanner_state.dart';
 import '../widgets/ticket_status_card.dart';
+import 'ticket_confirmation_page.dart';
 
 class QRScannerPage extends StatelessWidget {
   final VoidCallback? onScanSaved;
   final String? eventId;
   final String? eventName;
+  final bool canSaveData;
 
   const QRScannerPage({
     super.key,
     this.onScanSaved,
     this.eventId,
     this.eventName,
+    this.canSaveData = true,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return QRScannerView(
+      onScanSaved: onScanSaved,
+      eventId: eventId,
+      eventName: eventName,
+      canSaveData: canSaveData,
+    );
+  }
+}
+
+class QRScannerView extends StatefulWidget {
+  final VoidCallback? onScanSaved;
+  final String? eventId;
+  final String? eventName;
+  final bool canSaveData;
+
+  const QRScannerView({
+    super.key,
+    this.onScanSaved,
+    this.eventId,
+    this.eventName,
+    this.canSaveData = true,
+  });
+
+  @override
+  State<QRScannerView> createState() => _QRScannerViewState();
 
   @override
   Widget build(BuildContext context) {
@@ -48,22 +80,6 @@ class QRScannerPage extends StatelessWidget {
   }
 }
 
-class QRScannerView extends StatefulWidget {
-  final VoidCallback? onScanSaved;
-  final String? eventId;
-  final String? eventName;
-
-  const QRScannerView({
-    super.key,
-    this.onScanSaved,
-    this.eventId,
-    this.eventName,
-  });
-
-  @override
-  State<QRScannerView> createState() => _QRScannerViewState();
-}
-
 class _QRScannerViewState extends State<QRScannerView> {
   MobileScannerController? _scannerController;
   bool _isScanning = true;
@@ -71,6 +87,26 @@ class _QRScannerViewState extends State<QRScannerView> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   late ScannerBloc _scannerBloc;
   bool _audioInitialized = false;
+
+  Future<void> _refreshParticipantsForEvent() async {
+    if (widget.eventId == null) return;
+
+    final token = await AuthService.getAccessToken() ?? '';
+
+    if (!mounted) return;
+
+    try {
+      context.read<ParticipantBloc>().add(
+        FetchParticipantsEvent(
+          eventId: widget.eventId!,
+          token: token,
+          pageSize: 1000,
+        ),
+      );
+    } catch (e) {
+      debugPrint('ParticipantBloc no encontrado en el contexto: $e');
+    }
+  }
 
   @override
   void initState() {
@@ -607,54 +643,31 @@ class _QRScannerViewState extends State<QRScannerView> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder:
-            (_) => BlocBuilder<ScannerBloc, ScannerState>(
-              bloc: _scannerBloc,
-              builder: (context, state) {
-                final isSaving = state is SavingRunnerData;
-                final currentResult =
-                    (state is RunnerDataSaved) ? state.result : result;
+            (_) => TicketConfirmationPage(
+              initialTicket: result,
+              scannerBloc: _scannerBloc,
+              canSaveData: widget.canSaveData,
+              onNewScan: () {
+                _saveToReadHistory(result);
+                Navigator.of(context).pop();
+                _resetScanning();
+              },
+              onSaveData: (runnerNumber, chipId) {
+                final validationCode = result.validationCode ?? '';
+                if (validationCode.isNotEmpty) {
+                  _scannerBloc.add(
+                    UpdateRunnerDataEvent(
+                      validationCode: validationCode,
+                      runnerNumber: runnerNumber,
+                      chipId: chipId,
+                    ),
+                  );
 
-                return TicketStatusCard(
-                  ticket: currentResult,
-                  runnerNumber: currentResult.runnerNumber ?? '',
-                  chipId: currentResult.chipId ?? '',
-                  isFirstTime: currentResult.ticketStatus == 'valid',
-                  isSaving: isSaving,
-                  onNewScan: () {
-                    _saveToReadHistory(currentResult);
-                    Navigator.of(context).pop();
-                    _resetScanning();
-                  },
-                  onSaveData: (runnerNumber, chipId) {
-                    final validationCode = currentResult.validationCode ?? '';
-                    if (validationCode.isNotEmpty) {
-                      _scannerBloc.add(
-                        UpdateRunnerDataEvent(
-                          validationCode: validationCode,
-                          runnerNumber: runnerNumber,
-                          chipId: chipId,
-                        ),
-                      );
-
-                      // Si tenemos eventId, disparar actualización de participantes
-                      if (widget.eventId != null) {
-                        try {
-                          context.read<ParticipantBloc>().add(
-                            FetchParticipantsEvent(
-                              eventId: widget.eventId!,
-                              token: '',
-                              pageSize: 1000,
-                            ),
-                          );
-                        } catch (e) {
-                          debugPrint(
-                            'ParticipantBloc no encontrado en el contexto: $e',
-                          );
-                        }
-                      }
-                    }
-                  },
-                );
+                  // Si tenemos eventId, disparar actualización de participantes
+                  if (widget.eventId != null) {
+                    _refreshParticipantsForEvent();
+                  }
+                }
               },
             ),
       ),

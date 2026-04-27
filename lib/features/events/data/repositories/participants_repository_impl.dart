@@ -79,4 +79,88 @@ class ParticipantsRepositoryImpl implements ParticipantsRepository {
       return Left(ServerFailure('Error: ${e.toString()}'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> changeParticipant(
+    String orderId,
+    String participantId,
+    String token,
+    Map<String, dynamic> data,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ServerFailure('Se requiere conexión a internet para esta operación.'),
+      );
+    }
+
+    try {
+      await remoteDataSource.changeParticipant(orderId, participantId, token, data);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<dynamic>>> getEventCategories(
+    String eventId,
+    String token,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ServerFailure('Se requiere conexión a internet para esta operación.'),
+      );
+    }
+
+    try {
+      final results = await remoteDataSource.getEventCategories(eventId, token);
+      return Right(results);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<dynamic>>> getEventCategoriesByTicket(
+    String eventId,
+    String ticketId,
+    String token,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ServerFailure('Se requiere conexión a internet para esta operación.'),
+      );
+    }
+
+    try {
+      final results = await remoteDataSource.getEventCategoriesByTicket(eventId, ticketId, token);
+      return Right(results);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<dynamic>>> getEventTickets(
+    String eventId,
+    String token,
+    bool isAdmin,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return Left(
+        ServerFailure('Se requiere conexión a internet para esta operación.'),
+      );
+    }
+
+    try {
+      final results = await remoteDataSource.getEventTickets(
+        eventId,
+        token,
+        isAdmin,
+      );
+      return Right(results);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

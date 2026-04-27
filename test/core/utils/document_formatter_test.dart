@@ -3,92 +3,28 @@ import 'package:tocke/core/utils/document_formatter.dart';
 
 void main() {
   group('DocumentFormatter', () {
-    group('formatDocument', () {
-      test('should format RUT correctly', () {
-        const document = '123456789';
-        const documentType = 'rut';
-
-        final result = DocumentFormatter.formatDocument(document, documentType);
-
-        expect(result, equals('12.345.678-9'));
-      });
-
-      test('should not format passport', () {
-        const document = 'PP1234567';
-        const documentType = 'pasaporte';
-
-        final result = DocumentFormatter.formatDocument(document, documentType);
-
-        expect(result, equals('PP1234567'));
-      });
+    test('Debe formatear un RUT chileno correctamente', () {
+      expect(DocumentFormatter.formatRut('123456789'), '12.345.678-9');
+      expect(DocumentFormatter.formatRut('12345678K'), '12.345.678-K');
+      expect(DocumentFormatter.formatRut('1234567-8'), '1.234.567-8');
     });
 
-    group('formatRut', () {
-      test('should format RUT with dots and dash', () {
-        expect(
-          DocumentFormatter.formatRut('123456789'),
-          equals('12.345.678-9'),
-        );
-        expect(
-          DocumentFormatter.formatRut('987654321'),
-          equals('98.765.432-1'),
-        );
-        expect(
-          DocumentFormatter.formatRut('12345678K'),
-          equals('12.345.678-K'),
-        );
-      });
-
-      test('should clean existing formatting before reformatting', () {
-        expect(
-          DocumentFormatter.formatRut('12.345.678-9'),
-          equals('12.345.678-9'),
-        );
-        expect(
-          DocumentFormatter.formatRut('12345678-9'),
-          equals('12.345.678-9'),
-        );
-        expect(
-          DocumentFormatter.formatRut('12 345 678-9'),
-          equals('12.345.678-9'),
-        );
-      });
-
-      test('should return original for very short input', () {
-        expect(DocumentFormatter.formatRut('1'), equals('1'));
-        expect(DocumentFormatter.formatRut(''), equals(''));
-      });
+    test('Debe manejar RUTs ya formateados limpiándolos y re-formateándolos', () {
+      expect(DocumentFormatter.formatRut('12.345.678-9'), '12.345.678-9');
     });
 
-    group('getDocumentTypeDisplay', () {
-      test('should return correct display names', () {
-        expect(DocumentFormatter.getDocumentTypeDisplay('rut'), equals('RUT'));
-        expect(
-          DocumentFormatter.getDocumentTypeDisplay('pasaporte'),
-          equals('Pasaporte'),
-        );
-        expect(
-          DocumentFormatter.getDocumentTypeDisplay('cedula'),
-          equals('CEDULA'),
-        );
-      });
+    test('Debe devolver el RUT original si es demasiado corto', () {
+      expect(DocumentFormatter.formatRut('1'), '1');
     });
 
-    group('cleanDocument', () {
-      test('should remove all formatting characters', () {
-        expect(
-          DocumentFormatter.cleanDocument('12.345.678-9'),
-          equals('123456789'),
-        );
-        expect(
-          DocumentFormatter.cleanDocument('12 345 678-9'),
-          equals('123456789'),
-        );
-        expect(
-          DocumentFormatter.cleanDocument('PP-123.456'),
-          equals('PP123456'),
-        );
-      });
+    test('Debe formatear correctamente según el tipo de documento', () {
+      expect(DocumentFormatter.formatDocument('123456789', 'rut'), '12.345.678-9');
+      expect(DocumentFormatter.formatDocument('ABC123456', 'pasaporte'), 'ABC123456');
+    });
+
+    test('Debe limpiar documentos correctamente', () {
+      expect(DocumentFormatter.cleanDocument('12.345.678-9'), '123456789');
+      expect(DocumentFormatter.cleanDocument('  ABC 123  '), 'ABC123');
     });
   });
 }

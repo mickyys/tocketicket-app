@@ -34,7 +34,6 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       AppLogger.info('Código QR escaneado: ${event.qrCode}');
       _currentEventId = event.eventId;
 
-      // Extraer el código de validación del QR
       final validationCode = _extractValidationCode(event.qrCode);
 
       if (validationCode.isEmpty) {
@@ -42,7 +41,6 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         return;
       }
 
-      // Consultar automáticamente el estado del ticket
       add(CheckTicketStatusEvent(validationCode));
     } catch (e) {
       AppLogger.error('Error procesando QR: $e');
@@ -63,7 +61,6 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       result.fold(
         (failure) {
           AppLogger.error('Error consultando estado: ${failure.toString()}');
-          // Si el error es "Ticket no encontrado", emitir estado específico
           if (failure.toString().contains('Ticket no encontrado') ||
               failure.toString().contains('no encontrado')) {
             emit(TicketNotFound(event.validationCode));
@@ -77,11 +74,8 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
           AppLogger.info(
             'Estado del ticket consultado: ${validationResult.ticketStatus}',
           );
-          // Validar si el ticket pertenece al evento actual si hay uno seleccionado
           if (_currentEventId != null &&
               validationResult.eventName.isNotEmpty) {
-            // Nota: En un sistema real compararíamos por ID.
-            // Registramos la información para futuras validaciones o auditoría.
             AppLogger.info(
               'Ticket para evento: ${validationResult.eventName} (Validando contra eventId: $_currentEventId)',
             );
@@ -110,7 +104,6 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       result.fold(
         (failure) {
           AppLogger.error('Error validando ticket: ${failure.toString()}');
-          // Si el error es "Ticket no encontrado", emitir estado específico
           if (failure.toString().contains('Ticket no encontrado') ||
               failure.toString().contains('no encontrado')) {
             emit(TicketNotFound(event.validationCode));

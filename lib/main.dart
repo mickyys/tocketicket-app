@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 // import 'package:firebase_core/firebase_core.dart';  // Temporalmente comentado
 // import 'package:firebase_crashlytics/firebase_crashlytics.dart';  // Temporalmente comentado
 // import 'firebase_options.dart';  // Temporalmente comentado
@@ -17,7 +18,11 @@ import 'core/services/crashlytics_service.dart'; // Reactivado con implementaci√
 import 'core/di/dependency_injection.dart';
 import 'features/events/domain/usecases/get_attendee_status_summary.dart';
 import 'features/events/domain/usecases/get_events.dart';
+import 'features/events/domain/usecases/get_event_participants_detailed.dart';
+import 'features/events/domain/usecases/search_participants.dart';
+import 'features/events/domain/usecases/change_participant.dart';
 import 'features/events/presentation/bloc/event_bloc.dart';
+import 'features/events/presentation/bloc/participant_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'core/utils/global_keys.dart';
@@ -32,10 +37,15 @@ void main() async {
   await CrashlyticsService.initialize();
 
   // Inicializar Google Sign-In con credenciales reales
+  final googleClientId = const String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue:
+        '1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f.apps.googleusercontent.com',
+  );
+
   GoogleSignInService.configure(
     scopes: ['email', 'profile'],
-    clientId:
-        '1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f.apps.googleusercontent.com',
+    clientId: googleClientId,
   );
 
   // Configurar Crashlytics para capturar errores de Flutter - Temporalmente comentado
@@ -86,6 +96,15 @@ class TocketValidatorApp extends StatelessWidget {
                       context.read<GetAttendeeStatusSummary>(),
                 )..add(FetchEvents()),
           ),
+          BlocProvider(
+            create:
+                (context) => ParticipantBloc(
+                  getEventParticipantsDetailed:
+                      context.read<GetEventParticipantsDetailed>(),
+                  searchParticipants: context.read<SearchParticipants>(),
+                  changeParticipant: context.read<ChangeParticipant>(),
+                ),
+          ),
         ],
         child: MaterialApp(
           navigatorKey: navigatorKey,
@@ -94,6 +113,16 @@ class TocketValidatorApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.dark,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('es', 'ES'),
+            Locale('en', 'US'),
+          ],
+          locale: const Locale('es', 'ES'),
           home: const SplashScreen(),
         ),
       ),

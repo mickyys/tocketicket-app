@@ -10,6 +10,7 @@ class TicketStatusCard extends StatefulWidget {
   final VoidCallback onNewScan;
   final Function(String, String) onSaveData;
   final bool isSaving;
+  final bool canSaveData;
 
   const TicketStatusCard({
     super.key,
@@ -20,6 +21,7 @@ class TicketStatusCard extends StatefulWidget {
     required this.onNewScan,
     required this.onSaveData,
     this.isSaving = false,
+    this.canSaveData = true,
   });
 
   @override
@@ -349,7 +351,7 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed:
-                              (widget.isSaving || !_isDataValid())
+                              (widget.isSaving || !_isDataValid() || !widget.canSaveData)
                                   ? null
                                   : () => widget.onSaveData(
                                     _runnerNumberController.text,

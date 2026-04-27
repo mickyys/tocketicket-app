@@ -26,3 +26,5 @@ class GetAttendeeStatusSummaryEvent extends EventEvent {
   @override
   List<Object> get props => [eventId];
 }
+
+class ResetEvents extends EventEvent {}
