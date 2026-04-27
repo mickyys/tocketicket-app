@@ -86,9 +86,19 @@ flutter devices
 
 ### 3. Ejecutar en Android
 
+**Ver dispositivos disponibles:**
+```bash
+flutter devices
+```
+
 **Modo debug — entorno local** (backend en `localhost:8080`):
 ```bash
 flutter run --flavor dev --debug -d emulator-5554 --dart-define=ENVIRONMENT=local
+```
+
+**Modo debug — entorno local con flavor prod:**
+```bash
+flutter run --flavor prod --debug -d <device-id> --dart-define=ENVIRONMENT=local
 ```
 
 **Modo debug — entorno dev** (backend en `api.dev.tocketicket.cl`):
@@ -96,10 +106,23 @@ flutter run --flavor dev --debug -d emulator-5554 --dart-define=ENVIRONMENT=loca
 flutter run --flavor dev --debug -d emulator-5554 --dart-define=ENVIRONMENT=dev
 ```
 
-**Modo release:**
+**Modo debug — entorno prod** (backend en `api.tocketicket.cl`):
 ```bash
-flutter run --flavor prod --release -d emulator-5554 --dart-define=ENVIRONMENT=prod
+flutter run --flavor prod --debug -d <device-id> --dart-define=ENVIRONMENT=prod
 ```
+
+**Modo release — entorno prod:**
+```bash
+flutter run --flavor prod --release -d <device-id> --dart-define=ENVIRONMENT=prod
+```
+
+#### Parámetros:
+- `--flavor dev`: Usa el flavor de desarrollo (app name: "Tocke Staff Dev")
+- `--flavor prod`: Usa el flavor de producción (app name: "Tocke Staff")
+- `--debug`: Modo debug con logging y hot reload
+- `--release`: Modo release optimizado
+- `-d <device-id>`: Dispositivo o emulador destino
+- `--dart-define=ENVIRONMENT=local|dev|prod`: Environnement del backend
 
 ### 4. Comandos durante la ejecución (`flutter run`)
 | Tecla | Acción |
@@ -113,6 +136,57 @@ flutter run --flavor prod --release -d emulator-5554 --dart-define=ENVIRONMENT=p
 ### 5. Limpiar el proyecto
 ```bash
 flutter clean && flutter pub get
+```
+
+---
+
+## 🚀 Guía de Inicio Rápido
+
+### Requisitos previos
+
+1. **Backend local ejecutándose** en `localhost:8080`
+2. **Emulador o dispositivo** conectado (ver con `flutter devices`)
+
+### Iniciar app en entorno local
+
+Para ejecutar la app conectándose al backend local (`localhost:8080`):
+
+```bash
+flutter run --flavor prod --debug -d <device-id> --dart-define=ENVIRONMENT=local
+```
+
+Ejemplo con emulador:
+```bash
+flutter run --flavor prod --debug -d emulator-5554 --dart-define=ENVIRONMENT=local
+```
+
+Ejemplo con dispositivo físico (iPhone):
+```bash
+flutter run --flavor prod --debug -d "iPhone de Hector" --dart-define=ENVIRONMENT=local
+```
+
+### Ambientes disponibles
+
+| ENVIRONMENT | Backend URL | Descripción |
+|-------------|-------------|-------------|
+| `local` | `http://10.0.2.2:8080` (Android) / `http://127.0.0.1:8080` (iOS) | Backend local |
+| `dev` | `https://api.dev.tocketicket.cl` | Desarrollo |
+| `prod` | `https://api.tocketicket.cl` | Producción |
+
+### Compilar APK con nombre personalizado
+
+```bash
+flutter build apk --flavor prod --release --dart-define=ENVIRONMENT=prod -v --build-name=1.0.5
+```
+
+O si necesitas renombrar el archivo generado:
+
+```bash
+# Compilarnormal
+flutter build apk --flavor prod --release --dart-define=ENVIRONMENT=prod
+
+# Renombrar
+mv build/app/outputs/flutter-apk/app-prod-release.apk build/app/outputs/flutter-apk/tocke-1.0.5.apk
 ```
 
 ---

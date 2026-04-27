@@ -70,14 +70,6 @@ class _TicketConfirmationViewState extends State<_TicketConfirmationView> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialTicket.validationCode != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        context.read<ScannerBloc>().add(
-          CheckTicketStatusEvent(widget.initialTicket.validationCode!),
-        );
-      });
-    }
   }
 
   @override

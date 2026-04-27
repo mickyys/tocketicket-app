@@ -26,7 +26,7 @@ class QRScannerPage extends StatelessWidget {
   final String? eventName;
   final bool canSaveData;
 
-const QRScannerPage({
+  const QRScannerPage({
     super.key,
     this.onScanSaved,
     this.eventId,
