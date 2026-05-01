@@ -3,7 +3,7 @@ import 'package:tocke/config/app_config.dart';
 class AppConstants {
   // App Information
   static const String appName = 'Tocke Ticket';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.6';
 
   // API Configuration
   static const String apiVersion = '';

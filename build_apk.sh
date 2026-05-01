@@ -5,7 +5,7 @@
 
 set -e
 
-VERSION="1.0.5"
+VERSION="1.0.6"
 PLATFORM="android-arm64"
 BUILD_TYPE="release"
 ENVIRONMENT="prod"
