@@ -49,7 +49,6 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
   }
 
   String _getTicketStatusText(bool isCheckedIn) {
-    // Verificar si el ticket ya fue validado
     if (widget.ticket.ticketStatus == 'validated') {
       final validatedDate = widget.ticket.validatedAt;
       if (validatedDate != null) {
@@ -60,7 +59,9 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
     if (isCheckedIn) {
       return '✓ Ticket ya registrado';
     }
-    if (widget.ticket.ticketStatus == 'valid' || widget.ticket.isValid) {
+    if (widget.ticket.ticketStatus == 'valid' ||
+        widget.ticket.ticketStatus == 'active' ||
+        widget.ticket.isValid) {
       return '✓ Ticket válido, listo para usar';
     }
     return '✗ Ticket no válido';
@@ -73,7 +74,9 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
     if (isCheckedIn) {
       return AppColors.info;
     }
-    if (widget.ticket.ticketStatus == 'valid' || widget.ticket.isValid) {
+    if (widget.ticket.ticketStatus == 'valid' ||
+        widget.ticket.ticketStatus == 'active' ||
+        widget.ticket.isValid) {
       return AppColors.success;
     }
     return AppColors.error;
@@ -86,7 +89,9 @@ class _TicketStatusCardState extends State<TicketStatusCard> {
     if (isCheckedIn) {
       return AppColors.info.withValues(alpha: 0.2);
     }
-    if (widget.ticket.ticketStatus == 'valid' || widget.ticket.isValid) {
+    if (widget.ticket.ticketStatus == 'valid' ||
+        widget.ticket.ticketStatus == 'active' ||
+        widget.ticket.isValid) {
       return AppColors.success.withValues(alpha: 0.2);
     }
     return AppColors.error.withValues(alpha: 0.2);

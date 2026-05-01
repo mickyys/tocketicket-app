@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:tocke/core/constants/app_constants.dart';
 import 'package:tocke/core/services/auth_service.dart';
 import 'package:tocke/core/utils/http_header_utils.dart';
-import 'package:tocke/core/utils/logger.dart';
 import 'package:tocke/features/search/data/models/rut_ticket_search_result_model.dart';
 
 class RutTicketSearchService {
@@ -43,14 +42,6 @@ class RutTicketSearchService {
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final items = (data['data'] as List? ?? []);
-
-    AppLogger.info('[RutTicketSearchService] items: ${items.length}');
-    if (items.isNotEmpty) {
-      final first = items.first as Map<String, dynamic>;
-      AppLogger.info('[RutTicketSearchService] Keys retornadas: ${first.keys.toList()}');
-      AppLogger.info('[RutTicketSearchService] birthDate: ${first['birthDate']}');
-      AppLogger.info('[RutTicketSearchService] gender: ${first['gender']}');
-    }
 
     return items
         .map((item) => RutTicketSearchResultModel.fromJson(item))

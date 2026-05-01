@@ -150,6 +150,7 @@ class _RutTicketSearchPageState extends State<RutTicketSearchPage> {
       case 'validated':
         return 'Validado';
       case 'active':
+      case 'valid':
         return 'Activo';
       default:
         return 'Pendiente';
@@ -161,6 +162,7 @@ class _RutTicketSearchPageState extends State<RutTicketSearchPage> {
       case 'validated':
         return AppColors.success;
       case 'active':
+      case 'valid':
         return AppColors.info;
       default:
         return AppColors.warning;

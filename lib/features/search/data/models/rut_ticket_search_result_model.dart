@@ -24,6 +24,9 @@ class RutTicketSearchResultModel {
   final DateTime purchaseDate;
   final String? birthDate;
   final String? gender;
+  final int ticketCorrelative;
+  final bool enableChipId;
+  final bool enableRunnerNumber;
 
   const RutTicketSearchResultModel({
     required this.orderId,
@@ -43,10 +46,13 @@ class RutTicketSearchResultModel {
     required this.validationCode,
     required this.participantStatus,
     required this.ticketStatus,
-required this.validatedAt,
+    required this.validatedAt,
     required this.purchaseDate,
     this.birthDate,
     this.gender,
+    required this.ticketCorrelative,
+    required this.enableChipId,
+    required this.enableRunnerNumber,
   });
 
   factory RutTicketSearchResultModel.fromJson(Map<String, dynamic> json) {
@@ -80,6 +86,9 @@ required this.validatedAt,
           DateTime.fromMillisecondsSinceEpoch(0),
       birthDate: json['birthDate']?.toString(),
       gender: json['gender']?.toString(),
+      ticketCorrelative: json['ticketCorrelative'] as int? ?? 0,
+      enableChipId: json['enableChipId'] as bool? ?? false,
+      enableRunnerNumber: json['enableRunnerNumber'] as bool? ?? false,
     );
   }
 
@@ -90,21 +99,20 @@ required this.validatedAt,
       ticketStatus: ticketStatus,
       categoryName: categoryName,
       ticketName: ticketName,
-      ticketCorrelative: int.tryParse(ticketId),
+      ticketCorrelative: ticketCorrelative,
       participantStatus: participantStatus,
       participantDocumentType: documentType,
       participantDocumentNumber: documentNumber,
       validatedAt: validatedAt,
       purchaseDate: purchaseDate,
       validationCode: validationCode,
-      isValid: ticketStatus == 'valid',
-      enableChipId: false, // Default for now
-      enableRunnerNumber: false, // Default for now
+      isValid: ticketStatus == 'valid' || ticketStatus == 'active',
+      enableChipId: enableChipId,
+      enableRunnerNumber: enableRunnerNumber,
     );
   }
 
   Participant toParticipant() {
-    // Intentar separar nombre y apellido si es necesario
     String fname = '';
     String lname = '';
     if (participantName.isNotEmpty) {
@@ -130,7 +138,7 @@ required this.validatedAt,
       participantDocumentNumber: documentNumber,
       participantDocumentType: documentType.toLowerCase(),
       participantStatus: participantStatus,
-      ticketCorrelative: int.tryParse(ticketId) ?? 0,
+      ticketCorrelative: ticketCorrelative,
       ticketStatus: ticketStatus,
       validatedAt: validatedAt,
       categoryId: categoryId,
