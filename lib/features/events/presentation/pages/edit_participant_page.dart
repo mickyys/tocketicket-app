@@ -130,24 +130,13 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
       return;
     }
 
-    final filtered = _allCategories.where((cat) {
-      final categoryGenders = cat['genders'];
-      if (categoryGenders is List) {
-        final genderValid = categoryGenders.any((g) => g.toString().toLowerCase() == _selectedGender?.toLowerCase());
-        if (!genderValid) return false;
-      }
-
-      final categorizationType = cat['categorizationType'] ?? 'age';
-      final from = cat['from'] ?? 0;
-      final to = cat['to'] ?? 999;
-
-      final age = CategoryUtils.calculateAge(birthDate, widget.event.startDate);
-      if (categorizationType == 'age' && age != null) {
-        return age >= from && age <= to;
-      }
-
-      return true;
-    }).toList();
+    final filtered = CategoryUtils.getFilteredCategories(
+      ticketId: _selectedTicketId,
+      gender: _selectedGender,
+      birthDate: birthDate,
+      allCategories: _allCategories,
+      eventStartDate: widget.event.startDate,
+    );
 
     AppLogger.info('[EditParticipant] Categorías filtradas: ${filtered.length}');
 
@@ -345,16 +334,18 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
         ),
         body: _isLoadingData
             ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppConstants.padding),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+            : SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  top: AppConstants.padding,
+                  left: AppConstants.padding,
+                  right: AppConstants.padding,
+                  bottom: AppConstants.padding + MediaQuery.of(context).padding.bottom,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                             _buildSectionTitle('Información Personal'),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -474,54 +465,49 @@ class _EditParticipantPageState extends State<EditParticipantPage> {
                                     : null,
                               ),
                             ],
+                            const SizedBox(height: 32),
+                            BlocBuilder<ParticipantBloc, ParticipantState>(
+                              builder: (context, state) {
+                                final isLoading = state is ChangeParticipantLoading;
+                                return Column(
+                                  children: [
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 54,
+                                      child: ElevatedButton(
+                                        onPressed: isLoading ? null : _submit,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary,
+                                          foregroundColor: AppColors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: isLoading
+                                            ? const CircularProgressIndicator(color: AppColors.white)
+                                            : const Text('GUARDAR CAMBIOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 54,
+                                      child: OutlinedButton(
+                                        onPressed: isLoading ? null : _clearForm,
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: AppColors.error,
+                                          side: const BorderSide(color: AppColors.error),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: const Text('LIMPIAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppConstants.padding),
-                    child: BlocBuilder<ParticipantBloc, ParticipantState>(
-                      builder: (context, state) {
-                        final isLoading = state is ChangeParticipantLoading;
-                        return Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: ElevatedButton(
-                                onPressed: isLoading ? null : _submit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: AppColors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: isLoading
-                                    ? const CircularProgressIndicator(color: AppColors.white)
-                                    : const Text('GUARDAR CAMBIOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: OutlinedButton(
-                                onPressed: isLoading ? null : _clearForm,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.error,
-                                  side: const BorderSide(color: AppColors.error),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: const Text('LIMPIAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                ),
       ),
     );
   }

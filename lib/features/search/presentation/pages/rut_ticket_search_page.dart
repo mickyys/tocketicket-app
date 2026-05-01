@@ -39,6 +39,7 @@ class _RutTicketSearchPageState extends State<RutTicketSearchPage> {
   }
 
   Future<void> _search() async {
+    _documentFocusNode.unfocus();
     final rawValue = _documentController.text.trim();
     final cleanedDocument =
         _documentType == 'rut'

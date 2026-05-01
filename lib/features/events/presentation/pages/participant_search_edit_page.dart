@@ -38,6 +38,7 @@ class _ParticipantSearchEditPageState extends State<ParticipantSearchEditPage> {
   }
 
   Future<void> _search() async {
+    _documentFocusNode.unfocus();
     final rawValue = _documentController.text.trim();
     final cleanedDocument =
         _documentType == 'rut'

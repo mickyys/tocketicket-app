@@ -6,7 +6,7 @@
 
 # Valores por defecto
 ENV="dev"
-API_URL="https://api.dev.tocketicket.cl"
+API_URL="https://api.tocketicket.cl"
 GOOGLE_CLIENT_ID="1054622389903-o3rr07gqdm9k395e3roc33buqs033v9f.apps.googleusercontent.com"
 
 # Colores para output
